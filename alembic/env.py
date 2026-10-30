@@ -6,6 +6,10 @@ from alembic import context
 from app.core.config import settings
 from app.db.base import Base
 
+# Import models to register them with Base.metadata
+
+target_metadata = Base.metadata
+
 config = context.config
 
 config.set_main_option(
@@ -18,6 +22,7 @@ if config.config_file_name is not None:
 
 
 target_metadata = Base.metadata
+print("ALEMBIC TABLES:", list(target_metadata.tables.keys()))
 
 
 def include_name(name, type_, parent_names):
