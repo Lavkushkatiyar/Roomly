@@ -36,3 +36,7 @@ class RawInputServices:
         statement = select(RawInput).where(RawInput.id == raw_input_id)
 
         return db.scalar(statement)
+
+    @staticmethod
+    def get_all_inputs(db: Session) -> list[RawInput]:
+        return db.query(RawInput).all()

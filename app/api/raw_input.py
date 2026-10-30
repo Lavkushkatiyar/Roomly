@@ -43,3 +43,22 @@ def get_raw_input_endpoint(
         )
 
     return raw_input
+
+
+@router.get(
+    "/",
+    response_model=list[RawInputResponse],
+    status_code=status.HTTP_200_OK,
+)
+def get_all_inputs(
+    db: Session = Depends(get_db),
+):
+    raw_inputs = RawInputServices.get_all_inputs(db)
+
+    if raw_inputs is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Raw input not found",
+        )
+
+    return raw_inputs
