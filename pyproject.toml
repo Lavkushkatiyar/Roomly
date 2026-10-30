@@ -33,6 +33,7 @@ line-length = 88
 target-version = "py312"
 
 [tool.ruff.lint]
+ignore = ["B008"]
 select = ["E", "F", "I", "B", "UP"]
 
 [tool.ruff.format]

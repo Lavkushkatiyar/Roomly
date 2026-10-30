@@ -10,7 +10,7 @@ from app.db.models.enums import GuestLanguage
 from app.db.models.hotel_room import HotelRoom
 from app.db.models.raw_input import RawInput
 from app.schemas.raw_input import RawInputCreate
-from app.services.raw_input_services import create_raw_input, get_raw_input
+from app.services.raw_input_services import RawInputServices
 
 
 @pytest.fixture
@@ -54,7 +54,7 @@ def db():
 
 
 def test_create_raw_input_success(db, raw_input_data):
-    result = create_raw_input(db, raw_input_data)
+    result = RawInputServices.create_raw_input(db, raw_input_data)
 
     assert isinstance(result, RawInput)
     assert result.id is not None
@@ -72,7 +72,7 @@ def test_create_raw_input_commit_failure(db, raw_input_data, monkeypatch):
     monkeypatch.setattr(db, "commit", mock_commit)
 
     with pytest.raises(SQLAlchemyError):
-        create_raw_input(db, raw_input_data)
+        RawInputServices.create_raw_input(db, raw_input_data)
 
 
 def test_create_raw_input_add_failure(db, raw_input_data, monkeypatch):
@@ -82,7 +82,7 @@ def test_create_raw_input_add_failure(db, raw_input_data, monkeypatch):
     monkeypatch.setattr(db, "add", mock_add)
 
     with pytest.raises(SQLAlchemyError):
-        create_raw_input(db, raw_input_data)
+        RawInputServices.create_raw_input(db, raw_input_data)
 
     result = db.scalar(select(RawInput))
 
@@ -90,9 +90,9 @@ def test_create_raw_input_add_failure(db, raw_input_data, monkeypatch):
 
 
 def test_get_raw_input_success(db, raw_input_data):
-    created = create_raw_input(db, raw_input_data)
+    created = RawInputServices.create_raw_input(db, raw_input_data)
 
-    result = get_raw_input(db, created.id)
+    result = RawInputServices.get_raw_input(db, created.id)
 
     assert isinstance(result, RawInput)
     assert result.id == created.id
@@ -101,6 +101,6 @@ def test_get_raw_input_success(db, raw_input_data):
 def test_get_raw_input_not_found(db):
     raw_input_id = uuid.uuid4()
 
-    result = get_raw_input(db, raw_input_id)
+    result = RawInputServices.get_raw_input(db, raw_input_id)
 
     assert result is None
