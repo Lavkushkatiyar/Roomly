@@ -11,6 +11,11 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title=settings.app_name, version=settings.app_version)
 
+@app.get("/")
+async def home_page()-> dict[str,str]:
+    logger.info("Home page accessed ")
+    return {"status":"Awesome","message":"Ready for roomly ? "}
+
 
 @app.get("/health", tags=["Health"])
 async def health_check() -> dict[str, str]:
