@@ -47,7 +47,10 @@ nosetests.xml
 coverage.xml
 *.cover
 *.py.cover
+<<<<<<< HEAD
 *.lcov
+=======
+>>>>>>> 8d41bb1b9e97bd6dbe8dbaf0b65a94bec9984961
 .hypothesis/
 .pytest_cache/
 cover/
@@ -95,7 +98,11 @@ ipython_config.py
 #   install all needed dependencies.
 # Pipfile.lock
 
+<<<<<<< HEAD
 # uv
+=======
+# UV
+>>>>>>> 8d41bb1b9e97bd6dbe8dbaf0b65a94bec9984961
 #   Similar to Pipfile.lock, it is generally recommended to include uv.lock in version control.
 #   This is especially recommended for binary packages to ensure reproducibility, and is more
 #   commonly ignored for libraries.
@@ -123,14 +130,22 @@ ipython_config.py
 # pixi.lock
 #   Pixi creates a virtual environment in the .pixi directory, just like venv module creates one
 #   in the .venv directory. It is recommended not to include this directory in version control.
+<<<<<<< HEAD
 .pixi/*
 !.pixi/config.toml
+=======
+.pixi
+>>>>>>> 8d41bb1b9e97bd6dbe8dbaf0b65a94bec9984961
 
 # PEP 582; used by e.g. github.com/David-OConnor/pyflow and github.com/pdm-project/pdm
 __pypackages__/
 
 # Celery stuff
+<<<<<<< HEAD
 celerybeat-schedule*
+=======
+celerybeat-schedule
+>>>>>>> 8d41bb1b9e97bd6dbe8dbaf0b65a94bec9984961
 celerybeat.pid
 
 # Redis
@@ -166,7 +181,11 @@ venv.bak/
 # Rope project settings
 .ropeproject
 
+<<<<<<< HEAD
 # mkdocs/Zensical documentation
+=======
+# mkdocs documentation
+>>>>>>> 8d41bb1b9e97bd6dbe8dbaf0b65a94bec9984961
 /site
 
 # mypy
@@ -197,10 +216,17 @@ cython_debug/
 .abstra/
 
 # Visual Studio Code
+<<<<<<< HEAD
 #   Visual Studio Code specific template is maintained in a separate VisualStudioCode.gitignore that
 #   can be found at https://github.com/github/gitignore/blob/main/Global/VisualStudioCode.gitignore
 #   and can be added to the global gitignore or merged into this file. However, if you prefer, you
 #   could uncomment the following to ignore the entire vscode folder
+=======
+#   Visual Studio Code specific template is maintained in a separate VisualStudioCode.gitignore 
+#   that can be found at https://github.com/github/gitignore/blob/main/Global/VisualStudioCode.gitignore
+#   and can be added to the global gitignore or merged into this file. However, if you prefer, 
+#   you could uncomment the following to ignore the entire vscode folder
+>>>>>>> 8d41bb1b9e97bd6dbe8dbaf0b65a94bec9984961
 # .vscode/
 # Temporary file for partial code execution
 tempCodeRunnerFile.py
