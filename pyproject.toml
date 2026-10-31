@@ -11,6 +11,7 @@ dependencies = [
     "psycopg2-binary>=2.9.13",
     "psycopg[binary]>=3.3.6",
     "pydantic-settings>=2.15.0",
+    "respx>=0.23.1",
     "schemathesis>=4.32.7",
     "sqlalchemy>=2.1.6",
 ]
@@ -21,11 +22,13 @@ dev = [
     "pre-commit>=4.6.2",
     "pyright>=1.1.413",
     "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.1",
     "ruff>=0.16.6",
 ]
 
 
 [tool.pytest.ini_options]
+asyncio_mode = "auto"
 pythonpath = ["."]
 
 
