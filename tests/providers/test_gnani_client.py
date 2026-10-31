@@ -4,7 +4,7 @@ import httpx
 import pytest
 import respx
 
-from providers.gnani.client import GnaniAPIError, GnaniClient
+from app.providers.gnani.client import GnaniAPIError, GnaniClient
 
 
 def test_post_sends_authenticated_multipart_request():
