@@ -6,6 +6,8 @@ class Settings(BaseSettings):
     app_version: str = "0.1.0"
     environment: str = "development"
     DATABASE_URL: str = "postgres"
+    GNANI_API_KEY_ID: str = "yourAPI"
+    model: str = "timbre-v2.5"
 
     model_config = SettingsConfigDict(
         env_file=".env",
