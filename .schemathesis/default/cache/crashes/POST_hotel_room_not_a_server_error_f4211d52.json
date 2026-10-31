@@ -1,0 +1,93 @@
+{
+  "operation": "POST /hotel_room/",
+  "method": "POST",
+  "path_template": "/hotel_room/",
+  "fingerprint": "f4211d52",
+  "case_id": "qvGU4f",
+  "code_sample": "curl -X POST 'http://localhost:8000/hotel_room/?room_number=101'",
+  "sequence": [
+    {
+      "method": "POST",
+      "url": "http://localhost:8000/hotel_room/?room_number=101",
+      "url_template": "http://localhost:8000/hotel_room/",
+      "headers": {
+        "User-Agent": "schemathesis/4.32.7",
+        "Accept-Encoding": "gzip, deflate, zstd",
+        "Accept": "*/*",
+        "Connection": "keep-alive",
+        "X-Schemathesis-TestCaseId": "qvGU4f",
+        "Content-Length": "0"
+      },
+      "response": {
+        "status_code": 500,
+        "headers": {
+          "date": "Fri, 30 Oct 2026 22:03:33 GMT",
+          "server": "uvicorn",
+          "content-length": "21",
+          "content-type": "text/plain; charset=utf-8"
+        },
+        "body": "Internal Server Error"
+      },
+      "link": null,
+      "checks": [
+        {
+          "name": "not_a_server_error",
+          "status": "failure",
+          "message": "Server error"
+        }
+      ],
+      "meta": {
+        "generation": {
+          "time": 0.06464640999911353,
+          "mode": "positive"
+        },
+        "components": {
+          "QUERY": "positive"
+        },
+        "phase": {
+          "name": "fuzzing",
+          "data": {
+            "type": "FuzzingPhaseData",
+            "description": "Positive test case",
+            "location": null,
+            "parameter": null,
+            "parameter_location": null,
+            "mutations": []
+          }
+        },
+        "pool_draws": [],
+        "pool_misses": [],
+        "semantic_draws": [
+          {
+            "path": [
+              "room_number"
+            ],
+            "type_token": "string",
+            "format_token": null,
+            "pattern_hash": null,
+            "normalized_name": "roomnumber",
+            "value": "101",
+            "source_operation": "GET /hotel_room/"
+          }
+        ],
+        "dictionary_draws": [],
+        "constants_draws": [],
+        "raw_containers": {}
+      },
+      "path": "/hotel_room/",
+      "path_parameters": {},
+      "query": {
+        "room_number": "101"
+      },
+      "case_headers": {},
+      "cookies": {},
+      "case_body": {
+        "encoding": "none"
+      },
+      "media_type": null,
+      "parent_index": null,
+      "auth_identity": null,
+      "operation": "POST /hotel_room/"
+    }
+  ]
+}

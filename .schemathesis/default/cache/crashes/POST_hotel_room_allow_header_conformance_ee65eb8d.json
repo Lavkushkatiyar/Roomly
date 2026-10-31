@@ -1,0 +1,86 @@
+{
+  "operation": "POST /hotel_room/",
+  "method": "OPTIONS",
+  "path_template": "/hotel_room/",
+  "fingerprint": "ee65eb8d",
+  "case_id": "03aPvu",
+  "code_sample": "curl -X OPTIONS 'http://localhost:8000/hotel_room/?room_number='",
+  "sequence": [
+    {
+      "method": "OPTIONS",
+      "url": "http://localhost:8000/hotel_room/?room_number=",
+      "url_template": "http://localhost:8000/hotel_room/",
+      "headers": {
+        "User-Agent": "schemathesis/4.32.7",
+        "Accept-Encoding": "gzip, deflate, zstd",
+        "Accept": "*/*",
+        "Connection": "keep-alive",
+        "X-Schemathesis-TestCaseId": "03aPvu",
+        "Content-Length": "0"
+      },
+      "response": {
+        "status_code": 405,
+        "headers": {
+          "date": "Fri, 30 Oct 2026 22:03:30 GMT",
+          "server": "uvicorn",
+          "allow": "GET",
+          "content-length": "31",
+          "content-type": "application/json"
+        },
+        "body": "{\"detail\":\"Method Not Allowed\"}"
+      },
+      "link": null,
+      "checks": [
+        {
+          "name": "allow_header_conformance",
+          "status": "failure",
+          "message": "Allow header mismatch\n\n`Allow: GET` does not match the schema. Missing documented methods: POST\n\nList exactly the methods this resource supports in `Allow`"
+        }
+      ],
+      "meta": {
+        "generation": {
+          "time": 7.050999556668103e-06,
+          "mode": "negative"
+        },
+        "components": {
+          "QUERY": "positive"
+        },
+        "phase": {
+          "name": "coverage",
+          "data": {
+            "type": "CoveragePhaseData",
+            "description": "Unspecified HTTP method: OPTIONS",
+            "location": null,
+            "parameter": null,
+            "parameter_location": null,
+            "scenario": "unspecified_http_method"
+          }
+        },
+        "pool_draws": [],
+        "pool_misses": [],
+        "semantic_draws": [],
+        "dictionary_draws": [],
+        "constants_draws": [],
+        "raw_containers": {
+          "QUERY": {
+            "room_number": ""
+          }
+        }
+      },
+      "path": "/hotel_room/",
+      "path_parameters": {},
+      "query": {
+        "room_number": ""
+      },
+      "case_headers": {},
+      "cookies": {},
+      "case_body": {
+        "encoding": "none"
+      },
+      "media_type": null,
+      "parent_index": null,
+      "auth_identity": null,
+      "operation": "POST /hotel_room/"
+    }
+  ]
+}

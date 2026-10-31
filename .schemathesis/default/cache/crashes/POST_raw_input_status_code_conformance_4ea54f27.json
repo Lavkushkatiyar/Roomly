@@ -1,0 +1,97 @@
+{
+  "operation": "POST /raw_input/",
+  "method": "POST",
+  "path_template": "/raw_input/",
+  "fingerprint": "4ea54f27",
+  "case_id": "GpcJjT",
+  "code_sample": "curl -X POST -H 'Content-Type: application/json' -d '{\"guest_language\": \"en-IN\", \"room_id\": \"e3e70682-c209-1cac-a29f-6fbed82c07cd\", \"transcript\": \"string\"}' http://localhost:8000/raw_input/",
+  "sequence": [
+    {
+      "method": "POST",
+      "url": "http://localhost:8000/raw_input/",
+      "url_template": "http://localhost:8000/raw_input/",
+      "headers": {
+        "User-Agent": "schemathesis/4.32.7",
+        "Accept-Encoding": "gzip, deflate, zstd",
+        "Accept": "*/*",
+        "Connection": "keep-alive",
+        "X-Schemathesis-TestCaseId": "GpcJjT",
+        "Content-Type": "application/json",
+        "Content-Length": "102"
+      },
+      "response": {
+        "status_code": 500,
+        "headers": {
+          "date": "Fri, 30 Oct 2026 22:03:33 GMT",
+          "server": "uvicorn",
+          "content-length": "21",
+          "content-type": "text/plain; charset=utf-8"
+        },
+        "body": "Internal Server Error"
+      },
+      "link": null,
+      "checks": [
+        {
+          "name": "status_code_conformance",
+          "status": "failure",
+          "message": "Undocumented status code\n\nReceived: 500\nDocumented: 201, 422"
+        }
+      ],
+      "meta": {
+        "generation": {
+          "time": 0.05191234599988093,
+          "mode": "positive"
+        },
+        "components": {
+          "BODY": "positive"
+        },
+        "phase": {
+          "name": "fuzzing",
+          "data": {
+            "type": "FuzzingPhaseData",
+            "description": "Positive test case",
+            "location": null,
+            "parameter": null,
+            "parameter_location": null,
+            "mutations": []
+          }
+        },
+        "pool_draws": [],
+        "pool_misses": [],
+        "semantic_draws": [
+          {
+            "path": [
+              "transcript"
+            ],
+            "type_token": "string",
+            "format_token": null,
+            "pattern_hash": null,
+            "normalized_name": "transcript",
+            "value": "string",
+            "source_operation": "GET /raw_input/"
+          }
+        ],
+        "dictionary_draws": [],
+        "constants_draws": [],
+        "raw_containers": {}
+      },
+      "path": "/raw_input/",
+      "path_parameters": {},
+      "query": {},
+      "case_headers": {},
+      "cookies": {},
+      "case_body": {
+        "encoding": "json",
+        "value": {
+          "guest_language": "en-IN",
+          "room_id": "e3e70682-c209-1cac-a29f-6fbed82c07cd",
+          "transcript": "string"
+        }
+      },
+      "media_type": "application/json",
+      "parent_index": null,
+      "auth_identity": null,
+      "operation": "POST /raw_input/"
+    }
+  ]
+}

@@ -1,0 +1,91 @@
+{
+  "operation": "POST /raw_input/",
+  "method": "OPTIONS",
+  "path_template": "/raw_input/",
+  "fingerprint": "95661dd0",
+  "case_id": "T83Vng",
+  "code_sample": "curl -X OPTIONS -H 'Content-Type: application/json' -d '{\"room_id\": \"e3e70682-c209-1cac-a29f-6fbed82c07cd\", \"transcript\": \"0\", \"guest_language\": \"en-IN\"}' http://localhost:8000/raw_input/",
+  "sequence": [
+    {
+      "method": "OPTIONS",
+      "url": "http://localhost:8000/raw_input/",
+      "url_template": "http://localhost:8000/raw_input/",
+      "headers": {
+        "User-Agent": "schemathesis/4.32.7",
+        "Accept-Encoding": "gzip, deflate, zstd",
+        "Accept": "*/*",
+        "Connection": "keep-alive",
+        "X-Schemathesis-TestCaseId": "T83Vng",
+        "Content-Type": "application/json",
+        "Content-Length": "97"
+      },
+      "response": {
+        "status_code": 405,
+        "headers": {
+          "date": "Fri, 30 Oct 2026 22:03:30 GMT",
+          "server": "uvicorn",
+          "allow": "POST",
+          "content-length": "31",
+          "content-type": "application/json"
+        },
+        "body": "{\"detail\":\"Method Not Allowed\"}"
+      },
+      "link": null,
+      "checks": [
+        {
+          "name": "allow_header_conformance",
+          "status": "failure",
+          "message": "Allow header mismatch\n\n`Allow: POST` does not match the schema. Missing documented methods: GET\n\nList exactly the methods this resource supports in `Allow`"
+        }
+      ],
+      "meta": {
+        "generation": {
+          "time": 3.549997927621007e-06,
+          "mode": "negative"
+        },
+        "components": {
+          "BODY": "positive"
+        },
+        "phase": {
+          "name": "coverage",
+          "data": {
+            "type": "CoveragePhaseData",
+            "description": "Unspecified HTTP method: OPTIONS",
+            "location": null,
+            "parameter": null,
+            "parameter_location": null,
+            "scenario": "unspecified_http_method"
+          }
+        },
+        "pool_draws": [],
+        "pool_misses": [
+          [
+            "body",
+            "room_id"
+          ]
+        ],
+        "semantic_draws": [],
+        "dictionary_draws": [],
+        "constants_draws": [],
+        "raw_containers": {}
+      },
+      "path": "/raw_input/",
+      "path_parameters": {},
+      "query": {},
+      "case_headers": {},
+      "cookies": {},
+      "case_body": {
+        "encoding": "json",
+        "value": {
+          "room_id": "e3e70682-c209-1cac-a29f-6fbed82c07cd",
+          "transcript": "0",
+          "guest_language": "en-IN"
+        }
+      },
+      "media_type": "application/json",
+      "parent_index": null,
+      "auth_identity": null,
+      "operation": "POST /raw_input/"
+    }
+  ]
+}
