@@ -1,0 +1,9 @@
+from enum import StrEnum
+
+
+class ResponseType(StrEnum):
+    ANSWER = "ANSWER"
+    CLARIFICATION = "CLARIFICATION"
+    CONFIRMATION = "CONFIRMATION"
+    REQUEST_SUBMITTED = "REQUEST_SUBMITTED"
+    ERROR = "ERROR"

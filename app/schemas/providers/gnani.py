@@ -27,3 +27,13 @@ class TranscriptionResult(BaseModel):
     request_id: str
     processing_time: float | None = None
     latency: float | None = None
+
+
+class SpeechGenerationResult(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    audio_data: bytes
+    content_type: str
+    provider: str = "gnani"
+    model: str
+    request_id: str | None = None
