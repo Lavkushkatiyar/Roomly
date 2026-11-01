@@ -8,8 +8,9 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "postgres"
     GNANI_API_KEY_ID: str = "yourAPI"
     model: str = "timbre-v2.5"
-    REASONING_PROVIDER = "ollama"
-    REASONING_MODEL = "qwen3:8b"
+    REASONING_PROVIDER: str = "ollama"
+    REASONING_MODEL: str = "qwen3:8b"
+    OLLAMA_BASE_URL: str = "http://localhost:11434"
 
     model_config = SettingsConfigDict(
         env_file=".env",
