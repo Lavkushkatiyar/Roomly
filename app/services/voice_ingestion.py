@@ -12,7 +12,7 @@ from app.services.raw_input_services import RawInputServices
 logger = logging.getLogger(__name__)
 
 
-class voiceIngestionServices:
+class VoiceIngestionServices:
     def __init__(self, stt_provider: GnaniSTT) -> None:
         self.stt_provider = stt_provider
 
@@ -22,10 +22,10 @@ class voiceIngestionServices:
         audio: bytes,
         filename: str,
         room_id: uuid.UUID,
-        guest_langugae: GuestLanguage,
+        guest_language: GuestLanguage,
     ) -> RawInput:
         transcription = await self.stt_provider.transcribe(
-            audio=audio, language=guest_langugae.value, filename=filename
+            audio=audio, language=guest_language.value, filename=filename
         )
 
         transcript = transcription.text.strip()
@@ -33,7 +33,7 @@ class voiceIngestionServices:
             raise ValueError("Transcription can not be empty")
 
         raw_input_data = RawInputCreate(
-            room_id=room_id, transcript=transcript, guest_language=guest_langugae
+            room_id=room_id, transcript=transcript, guest_language=guest_language
         )
 
         raw_input = RawInputServices.create_raw_input(
