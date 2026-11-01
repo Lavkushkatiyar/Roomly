@@ -17,7 +17,7 @@ from app.db.session import get_db
 from app.providers.gnani.client import GnaniAPIError
 from app.providers.gnani.dependencies import get_gnani_stt
 from app.providers.gnani.stt import GnaniSTT
-from app.schemas.raw_input import RawInputResponse
+from app.schemas.voice_ingestion import VoiceIngestionResponse
 from app.services.voice_ingestion import VoiceIngestionServices
 
 logger = logging.getLogger(__name__)
@@ -27,7 +27,7 @@ router = APIRouter(prefix="/voice", tags=["Voice"])
 
 @router.post(
     "/ingest",
-    response_model=RawInputResponse,
+    response_model=VoiceIngestionResponse,
     status_code=status.HTTP_201_CREATED,
 )
 async def ingest_voice(
@@ -44,7 +44,7 @@ async def ingest_voice(
             stt_provider=stt_provider,
         )
 
-        return await ingestion_service.ingest_audio(
+        return await ingestion_service.ingest_and_extract(
             db=db,
             audio=audio_data,
             filename=audio.filename or "recording.wav",

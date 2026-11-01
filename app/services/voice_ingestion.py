@@ -6,15 +6,24 @@ from sqlalchemy.orm import Session
 from app.db.models.enums import GuestLanguage
 from app.db.models.raw_input import RawInput
 from app.providers.gnani.stt import GnaniSTT
-from app.schemas.raw_input import RawInputCreate
+from app.schemas.raw_input import RawInputCreate, RawInputResponse
+from app.schemas.voice_ingestion import VoiceIngestionResponse
 from app.services.raw_input_services import RawInputServices
+from app.services.task_extraction import TaskExtractionServices
 
 logger = logging.getLogger(__name__)
 
 
 class VoiceIngestionServices:
-    def __init__(self, stt_provider: GnaniSTT) -> None:
+    def __init__(
+        self,
+        stt_provider: GnaniSTT,
+        task_extraction_service: TaskExtractionServices | None = None,
+    ) -> None:
         self.stt_provider = stt_provider
+        self.task_extraction_service = (
+            task_extraction_service or TaskExtractionServices()
+        )
 
     async def ingest_audio(
         self,
@@ -48,3 +57,28 @@ class VoiceIngestionServices:
         )
 
         return raw_input
+
+    async def ingest_and_extract(
+        self,
+        db: Session,
+        audio: bytes,
+        filename: str,
+        room_id: uuid.UUID,
+        guest_language: GuestLanguage,
+    ) -> VoiceIngestionResponse:
+        raw_input = await self.ingest_audio(
+            db=db,
+            audio=audio,
+            filename=filename,
+            room_id=room_id,
+            guest_language=guest_language,
+        )
+
+        extraction = await self.task_extraction_service.extract_tasks_from_text(
+            transcript=raw_input.transcript,
+        )
+
+        return VoiceIngestionResponse(
+            raw_input=RawInputResponse.model_validate(raw_input),
+            extraction=extraction,
+        )
