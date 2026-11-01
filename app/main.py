@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from app.api.hotel_room import router as hotel_room_router
 from app.api.raw_input import router as raw_input_router
 from app.api.service_request import router as service_request_router
+from app.api.task_extraction import router as task_extraction_router
 from app.core.config import settings
 from app.core.logging import setup_logging
 
@@ -16,6 +17,7 @@ app = FastAPI(title=settings.app_name, version=settings.app_version)
 app.include_router(hotel_room_router)
 app.include_router(raw_input_router)
 app.include_router(service_request_router)
+app.include_router(task_extraction_router)
 
 
 @app.get("/")

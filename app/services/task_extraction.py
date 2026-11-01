@@ -1,58 +1,32 @@
 import logging
 
-from app.core.config import settings
-from app.db.models.enums import GuestLanguage
-from app.providers.gnani.client import GnaniClient
-from app.providers.gnani.stt import GnaniSTT
-from app.providers.reasoning.ollama import OllamaProvider
+from app.providers.reasoning.base import ReasoningProvider
+from app.providers.reasoning.llm_factory import get_reasoning_provider
 from app.schemas.task_extraction import TaskExtractionResult
 
 logger = logging.getLogger(__name__)
 
 
 class TaskExtractionServices:
-    def __init__(self) -> None:
-        self.client = GnaniClient(
-            settings.GNANI_API_KEY_ID,
-            timeout=40.0,
-        )
-        self.stt_provider = GnaniSTT(client=self.client)
-        self.reasoning_provider = OllamaProvider(
-            model=settings.REASONING_MODEL,
-            base_url=settings.OLLAMA_BASE_URL,
-        )
-
-    async def extract_tasks_from_voice(
+    def __init__(
         self,
-        audio: bytes,
-        language: GuestLanguage = GuestLanguage.ENGLISH,
-        filename: str = "guest-audio.wav",
+        reasoning_provider: ReasoningProvider | None = None,
+    ) -> None:
+        self.reasoning_provider = reasoning_provider or get_reasoning_provider()
+
+    async def extract_tasks_from_text(
+        self,
+        transcript: str,
     ) -> TaskExtractionResult:
-        if not audio:
-            raise ValueError("Audio input cannot be empty.")
+        normalized_transcript = transcript.strip()
 
-        logger.info("Starting voice task extraction.")
+        if not normalized_transcript:
+            raise ValueError("Transcript cannot be empty.")
 
-        transcription = await self.stt_provider.transcribe(
-            audio=audio,
-            language=language,
-            filename=filename,
-        )
-
-        transcript = transcription.text.strip()
-
-        if not transcript:
-            logger.warning("STT returned an empty transcript.")
-            return TaskExtractionResult(tasks=[])
-
-        logger.info(
-            "STT completed. Provider=%s Model=%s",
-            transcription.provider,
-            transcription.model,
-        )
+        logger.info("Starting task extraction from text.")
 
         result = await self.reasoning_provider.extract_tasks(
-            transcript=transcript,
+            transcript=normalized_transcript,
         )
 
         logger.info(
