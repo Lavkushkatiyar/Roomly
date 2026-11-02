@@ -1,6 +1,7 @@
 import logging
 import uuid
 
+import httpx
 from fastapi import (
     APIRouter,
     Depends,
@@ -51,6 +52,17 @@ async def ingest_voice(
             room_id=room_id,
             guest_language=guest_language,
         )
+
+    except httpx.HTTPStatusError as exc:
+        logger.error(
+            "Gnani API rejected request: status=%s response=%s",
+            exc.response.status_code,
+            exc.response.text[:1000],
+        )
+        raise GnaniAPIError(
+            "Gnani rejected the request.",
+            status_code=exc.response.status_code,
+        ) from exc
 
     except ValueError as exc:
         raise HTTPException(

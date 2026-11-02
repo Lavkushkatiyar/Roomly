@@ -1,7 +1,10 @@
+import logging
 from collections.abc import Mapping
 from typing import Any
 
 import httpx
+
+logger = logging.getLogger(__name__)
 
 
 class GnaniAPIError(Exception):
@@ -54,6 +57,11 @@ class GnaniClient:
             payload = response.json()
 
         except httpx.HTTPStatusError as exc:
+            logger.error(
+                "Gnani API error: status=%s, response=%s",
+                exc.response.status_code,
+                exc.response.text,
+            )
             raise GnaniAPIError(
                 "Gnani rejected the request.",
                 status_code=exc.response.status_code,
