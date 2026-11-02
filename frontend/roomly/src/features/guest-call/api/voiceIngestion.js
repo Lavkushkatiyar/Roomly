@@ -1,23 +1,10 @@
+import { convertAudioToWav } from "../utils/audio";
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL?.replace(/\/+$/, "") ?? "";
 const ROOM_ID = import.meta.env.VITE_ROOM_ID?.trim() ?? "";
 const GUEST_LANGUAGE = import.meta.env.VITE_GUEST_LANGUAGE?.trim() || "en-IN";
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
-const AUDIO_EXTENSIONS = {
-  "audio/mp4": "m4a",
-  "audio/mpeg": "mp3",
-  "audio/ogg": "ogg",
-  "audio/wav": "wav",
-  "audio/webm": "webm",
-};
-
-function getRecordingFilename(audioBlob) {
-  const mimeType = audioBlob.type.split(";")[0].toLowerCase();
-  const extension = AUDIO_EXTENSIONS[mimeType] ?? "webm";
-
-  return `roomly-recording.${extension}`;
-}
 
 function isIngestionResponse(payload) {
   return (
@@ -68,8 +55,9 @@ export async function ingestVoiceRecording(audioBlob) {
     );
   }
 
+  const wavBlob = await convertAudioToWav(audioBlob);
   const formData = new FormData();
-  formData.append("audio", audioBlob, getRecordingFilename(audioBlob));
+  formData.append("audio", wavBlob, "roomly-recording.wav");
   formData.append("room_id", ROOM_ID);
   formData.append("guest_language", GUEST_LANGUAGE);
 
