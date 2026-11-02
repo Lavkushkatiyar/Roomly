@@ -4,10 +4,12 @@ const STATUS_LABELS = {
   recording: "Listening · Tap to end your call",
   processing: "Finishing your recording",
   recorded: "Recording complete",
-  error: "Microphone unavailable",
+  uploading: "Sending your recording",
+  complete: "Transcript and tasks ready",
+  error: "Unable to complete request",
 };
 
-export function CallStatus({ status, errorMessage }) {
+export function CallStatus({ status, errorMessage, retrying = false }) {
   return (
     <div className="call-status">
       <p className="call-status__label" aria-live="polite">
@@ -17,9 +19,10 @@ export function CallStatus({ status, errorMessage }) {
         {STATUS_LABELS[status]}
       </p>
       {errorMessage && (
-        <p className="call-status__error" role="alert">
-          {errorMessage}
-        </p>
+        <div className="call-status__error" role="alert">
+          <p>{errorMessage}</p>
+          {retrying && <p>Tap the microphone to retry this recording.</p>}
+        </div>
       )}
     </div>
   );

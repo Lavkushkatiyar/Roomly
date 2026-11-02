@@ -1,12 +1,22 @@
-export function VoiceControl({ status, onToggle }) {
+export function VoiceControl({
+  status,
+  onToggle,
+  disabled = false,
+  retryUpload = false,
+}) {
   const isRecording = status === "recording";
-  const isBusy = status === "requesting" || status === "processing";
+  const isBusy =
+    status === "requesting" ||
+    status === "processing" ||
+    status === "uploading";
   const label = isRecording
     ? "End voice recording"
-    : status === "recorded"
+    : status === "complete"
       ? "Record another message"
       : status === "error"
-        ? "Retry microphone access"
+        ? retryUpload
+          ? "Retry voice request"
+          : "Retry microphone access"
         : "Start voice recording";
 
   return (
@@ -19,7 +29,7 @@ export function VoiceControl({ status, onToggle }) {
         className="voice-control__button"
         type="button"
         onClick={onToggle}
-        disabled={isBusy}
+        disabled={isBusy || disabled}
         aria-label={label}
         aria-pressed={isRecording}
       >

@@ -1,3 +1,5 @@
+const roomNumber = import.meta.env.VITE_ROOM_NUMBER?.trim() || "204";
+
 export function GuestHeader() {
   return (
     <header className="guest-header">
@@ -30,7 +32,7 @@ export function GuestHeader() {
       <div className="guest-header__account">
         <span className="guest-header__room">
           <span className="guest-header__room-dot" aria-hidden="true" />
-          Room 204
+          Room {roomNumber}
         </span>
         <span className="guest-header__profile" role="img" aria-label="Guest profile">
           <svg aria-hidden="true" viewBox="0 0 24 24" fill="none">
