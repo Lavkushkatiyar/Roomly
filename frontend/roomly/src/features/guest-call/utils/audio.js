@@ -5,7 +5,7 @@ const SUPPORTED_AUDIO_TYPES = [
   "audio/ogg;codecs=opus",
 ];
 
-export function getSupportedAudioMimeType(): string | null {
+export function getSupportedAudioMimeType() {
   if (typeof MediaRecorder.isTypeSupported !== "function") {
     return null;
   }
@@ -17,11 +17,11 @@ export function getSupportedAudioMimeType(): string | null {
   );
 }
 
-export function stopMediaStream(stream: MediaStream | null): void {
+export function stopMediaStream(stream) {
   stream?.getTracks().forEach((track) => track.stop());
 }
 
-export function getRecordingErrorMessage(error: unknown): string {
+export function getRecordingErrorMessage(error) {
   if (error instanceof DOMException) {
     if (error.name === "NotAllowedError" || error.name === "SecurityError") {
       return "Microphone access was denied. Allow access in your browser settings and try again.";

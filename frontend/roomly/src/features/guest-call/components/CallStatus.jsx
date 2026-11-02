@@ -1,11 +1,4 @@
-import type { RecorderStatus } from "../types/voice";
-
-interface CallStatusProps {
-  status: RecorderStatus;
-  errorMessage: string | null;
-}
-
-const STATUS_LABELS: Record<RecorderStatus, string> = {
+const STATUS_LABELS = {
   idle: "Tap to start your call",
   requesting: "Requesting microphone access",
   recording: "Listening · Tap to end your call",
@@ -14,7 +7,7 @@ const STATUS_LABELS: Record<RecorderStatus, string> = {
   error: "Microphone unavailable",
 };
 
-export function CallStatus({ status, errorMessage }: CallStatusProps) {
+export function CallStatus({ status, errorMessage }) {
   return (
     <div className="call-status">
       <p className="call-status__label" aria-live="polite">

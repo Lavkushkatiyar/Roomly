@@ -6,12 +6,8 @@ import { useAudioRecorder } from "../hooks/useAudioRecorder";
 import "./guest-call.css";
 
 export function GuestCallScreen() {
-  const {
-    status,
-    errorMessage,
-    startRecording,
-    stopRecording,
-  } = useAudioRecorder();
+  const { status, errorMessage, startRecording, stopRecording } =
+    useAudioRecorder();
 
   const toggleRecording = () => {
     if (status === "recording") {

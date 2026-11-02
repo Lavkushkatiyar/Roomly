@@ -1,0 +1,12 @@
+{
+  "name": "roomly-frontend",
+  "private": true,
+  "workspaces": [
+    "roomly"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace roomly",
+    "build": "npm run build --workspace roomly",
+    "lint": "npm run lint --workspace roomly"
+  }
+}

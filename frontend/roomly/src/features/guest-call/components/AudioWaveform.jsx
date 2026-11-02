@@ -3,11 +3,7 @@ const WAVEFORM_HEIGHTS = [
   24, 13, 28, 17, 33, 21, 12, 25, 16, 9,
 ];
 
-interface AudioWaveformProps {
-  active: boolean;
-}
-
-export function AudioWaveform({ active }: AudioWaveformProps) {
+export function AudioWaveform({ active }) {
   return (
     <div
       className={`audio-waveform${active ? " audio-waveform--active" : ""}`}

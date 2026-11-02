@@ -1,11 +1,4 @@
-import type { RecorderStatus } from "../types/voice";
-
-interface VoiceControlProps {
-  status: RecorderStatus;
-  onToggle: () => void;
-}
-
-export function VoiceControl({ status, onToggle }: VoiceControlProps) {
+export function VoiceControl({ status, onToggle }) {
   const isRecording = status === "recording";
   const isBusy = status === "requesting" || status === "processing";
   const label = isRecording

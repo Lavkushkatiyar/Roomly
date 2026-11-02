@@ -1,9 +1,101 @@
+.guest-header {
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 2;
+  display: flex;
+  min-height: 3.5rem;
+  align-items: center;
+  padding: 0.6rem clamp(1.25rem, 3.4vw, 3rem);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 68%, transparent);
+  background: color-mix(in srgb, var(--color-background) 96%, transparent);
+  font-family: var(--font-sans);
+}
+
+.guest-header__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.guest-header__logo {
+  width: 1.4rem;
+  height: 1.4rem;
+  color: var(--color-olive);
+}
+
+.guest-header__name {
+  font-family: var(--font-serif);
+  font-size: 1.1rem;
+  letter-spacing: -0.035em;
+}
+
+.guest-header__divider {
+  width: 1px;
+  height: 1rem;
+  margin: 0 0.85rem;
+  background: var(--color-border);
+}
+
+.guest-header__descriptor {
+  color: var(--color-secondary);
+  font-size: 0.58rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.guest-header__account {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin-left: auto;
+}
+
+.guest-header__room {
+  display: inline-flex;
+  min-height: 1.85rem;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.25rem 0.7rem;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  color: var(--color-primary);
+  font-size: 0.57rem;
+  font-weight: 600;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.guest-header__room-dot {
+  width: 0.38rem;
+  height: 0.38rem;
+  border-radius: 50%;
+  background: var(--color-olive);
+}
+
+.guest-header__profile {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  color: var(--color-olive);
+}
+
+.guest-header__profile svg {
+  width: 1.15rem;
+  height: 1.15rem;
+}
+
 .guest-call {
   min-height: 100vh;
   min-height: 100svh;
   display: grid;
   place-items: center;
-  padding: clamp(2rem, 7vh, 5rem) 1.5rem;
+  padding: clamp(4.5rem, 8vh, 6rem) 1.5rem 2rem;
   background: var(--color-background);
   color: var(--color-primary);
 }
@@ -222,6 +314,35 @@
 }
 
 @media (max-width: 480px) {
+  .guest-header {
+    min-height: 3.25rem;
+    padding-inline: 1rem;
+  }
+
+  .guest-header__divider {
+    margin-inline: 0.55rem;
+  }
+
+  .guest-header__descriptor {
+    font-size: 0.5rem;
+    letter-spacing: 0.11em;
+  }
+
+  .guest-header__account {
+    gap: 0.45rem;
+  }
+
+  .guest-header__room {
+    min-height: 1.7rem;
+    padding-inline: 0.55rem;
+    font-size: 0.5rem;
+  }
+
+  .guest-header__profile {
+    width: 1.8rem;
+    height: 1.8rem;
+  }
+
   .guest-call {
     padding-inline: 1.25rem;
   }
@@ -251,6 +372,16 @@
   .voice-control__button {
     width: 6.25rem;
     height: 6.25rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .guest-header__descriptor {
+    display: none;
+  }
+
+  .guest-header__divider {
+    display: none;
   }
 }
 

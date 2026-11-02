@@ -5,15 +5,14 @@ import {
   getSupportedAudioMimeType,
   stopMediaStream,
 } from "../utils/audio";
-import type { AudioRecorderState } from "../types/voice";
 
-const INITIAL_STATE: AudioRecorderState = {
+const INITIAL_STATE = {
   status: "idle",
   errorMessage: null,
   audioBlob: null,
 };
 
-function getUnsupportedErrorMessage(): string {
+function getUnsupportedErrorMessage() {
   if (!navigator.mediaDevices?.getUserMedia) {
     return "Microphone recording is not supported by this browser. Try a current browser over a secure connection.";
   }
@@ -26,22 +25,22 @@ function getUnsupportedErrorMessage(): string {
 }
 
 export function useAudioRecorder() {
-  const [state, setState] = useState<AudioRecorderState>(INITIAL_STATE);
+  const [state, setState] = useState(INITIAL_STATE);
   const mountedRef = useRef(false);
   const startingRef = useRef(false);
-  const recorderRef = useRef<MediaRecorder | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
+  const recorderRef = useRef(null);
+  const streamRef = useRef(null);
+  const chunksRef = useRef([]);
   const recorderFailedRef = useRef(false);
 
-  const updateState = useCallback((nextState: AudioRecorderState) => {
+  const updateState = useCallback((nextState) => {
     if (mountedRef.current) {
       setState(nextState);
     }
   }, []);
 
   const failRecording = useCallback(
-    (message: string) => {
+    (message) => {
       recorderFailedRef.current = true;
       recorderRef.current = null;
       stopMediaStream(streamRef.current);
@@ -93,7 +92,7 @@ export function useAudioRecorder() {
       audioBlob: null,
     });
 
-    let stream: MediaStream | null = null;
+    let stream = null;
 
     try {
       if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
@@ -120,7 +119,7 @@ export function useAudioRecorder() {
       const recorder = new MediaRecorder(stream, { mimeType });
       recorderRef.current = recorder;
 
-      recorder.ondataavailable = (event: BlobEvent) => {
+      recorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
           chunksRef.current.push(event.data);
         }
