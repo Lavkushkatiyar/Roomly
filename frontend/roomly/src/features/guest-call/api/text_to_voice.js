@@ -17,10 +17,12 @@ export async function synthesizeSpeech(assistantResponse) {
     });
   } catch (error) {
     if (error?.response) {
-      throw new Error(`Speech generation failed (${error.response.status}).`);
+      throw new Error(`Speech generation failed (${error.response.status}).`, {
+        cause: error,
+      });
     }
 
-    throw new Error("Could not reach Roomly speech service.");
+    throw new Error("Could not reach Roomly speech service.", { cause: error });
   }
 
   const audioBlob = response.data;
