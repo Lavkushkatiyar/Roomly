@@ -61,7 +61,7 @@ export async function ingestVoiceRecording(audioBlob) {
   formData.append("room_id", ROOM_ID);
   formData.append("guest_language", GUEST_LANGUAGE);
 
-  let response;
+    let response;
   try {
     response = await fetch(`${API_BASE_URL}/voice/ingest`, {
       method: "POST",
