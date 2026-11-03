@@ -7,9 +7,16 @@ class GnaniTTS:
         self.client = client
         self.model = model
 
-    async def generateVoice(
-        self, text: str, language_code: str, voice: str, speed: float = 1.0
+    async def generate_voice(
+        self,
+        text: str,
+        language_code: str,
+        voice: str = "Nalini",
+        speed: float = 1.0,
     ) -> SpeechGenerationResult:
+        if not text.strip():
+            raise ValueError("Text cannot be empty.")
+
         payload = {
             "text": text,
             "voice": voice,
@@ -24,7 +31,7 @@ class GnaniTTS:
                 "sample_width": 2,
             },
         }
-        print(payload)
+
         response = await self.client.post_audio(
             "/api/v1/tts/inference",
             json=payload,

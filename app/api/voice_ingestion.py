@@ -18,6 +18,8 @@ from app.db.session import get_db
 from app.providers.gnani.client import GnaniAPIError
 from app.providers.gnani.dependencies import get_gnani_stt
 from app.providers.gnani.stt import GnaniSTT
+from app.providers.reasoning.llm_factory import get_reasoning_provider
+from app.providers.reasoning.ollama import OllamaProvider
 from app.schemas.voice_ingestion import VoiceIngestionResponse
 from app.services.voice_ingestion import VoiceIngestionServices
 
@@ -37,12 +39,13 @@ async def ingest_voice(
     guest_language: GuestLanguage = Form(...),
     db: Session = Depends(get_db),
     stt_provider: GnaniSTT = Depends(get_gnani_stt),
+    ollama_provider: OllamaProvider = Depends(get_reasoning_provider),
 ):
     try:
         audio_data = await audio.read()
 
         ingestion_service = VoiceIngestionServices(
-            stt_provider=stt_provider,
+            stt_provider=stt_provider, reasoning_provider=ollama_provider
         )
 
         return await ingestion_service.ingest_and_extract(

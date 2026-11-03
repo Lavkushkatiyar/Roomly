@@ -1,5 +1,6 @@
 from typing import Protocol
 
+from app.schemas.assistant import AssistantResponse
 from app.schemas.task_extraction import TaskExtractionResult
 
 
@@ -8,3 +9,9 @@ class ReasoningProvider(Protocol):
         self,
         transcript: str,
     ) -> TaskExtractionResult: ...
+
+    async def generate_response(
+        self,
+        extraction: TaskExtractionResult,
+        language: str,
+    ) -> AssistantResponse: ...

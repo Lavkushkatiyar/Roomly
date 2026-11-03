@@ -15,7 +15,7 @@ async def main() -> None:
         print(client)
         tts = GnaniTTS(client, settings.model)
 
-        result = await tts.generateVoice(
+        result = await tts.generate_voice(
             text="नमस्ते, आप कैसे हैं?",
             language_code="hi-IN",
             voice="Nalini",
