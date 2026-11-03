@@ -1,6 +1,6 @@
+import apiClient from "./client";
 import { convertAudioToWav } from "../utils/audio";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL?.replace(/\/+$/, "") ?? "";
 const ROOM_ID = import.meta.env.VITE_ROOM_ID?.trim() ?? "";
 const GUEST_LANGUAGE = import.meta.env.VITE_GUEST_LANGUAGE?.trim() || "en-IN";
 const UUID_PATTERN =
@@ -27,22 +27,15 @@ function isIngestionResponse(payload) {
   );
 }
 
-async function getErrorMessage(response) {
-  const contentType = response.headers.get("content-type") ?? "";
+function getErrorMessage(error) {
+  const response = error?.response;
 
-  if (contentType.includes("application/json")) {
-    const body = await response.text();
-    let payload;
+  if (!response) {
+    return "Could not reach Roomly. Check that the backend is running and try again.";
+  }
 
-    try {
-      payload = JSON.parse(body);
-    } catch {
-      return `Voice ingestion failed (${response.status}). Please try again.`;
-    }
-
-    if (typeof payload?.detail === "string") {
-      return payload.detail;
-    }
+  if (typeof response.data?.detail === "string") {
+    return response.data.detail;
   }
 
   return `Voice ingestion failed (${response.status}). Please try again.`;
@@ -61,31 +54,16 @@ export async function ingestVoiceRecording(audioBlob) {
   formData.append("room_id", ROOM_ID);
   formData.append("guest_language", GUEST_LANGUAGE);
 
-    let response;
+  let response;
   try {
-    response = await fetch(`${API_BASE_URL}/voice/ingest`, {
-      method: "POST",
-      body: formData,
-    });
-  } catch {
-    throw new Error(
-      "Could not reach Roomly. Check that the backend is running and try again.",
-    );
+    response = await apiClient.post("voice/ingest", formData);
+  } catch (error) {
+    throw new Error(getErrorMessage(error));
   }
 
-  if (!response.ok) {
-    throw new Error(await getErrorMessage(response));
-  }
-
-  const contentType = response.headers.get("content-type") ?? "";
-  if (!contentType.includes("application/json")) {
+  if (!isIngestionResponse(response.data)) {
     throw new Error("Roomly returned an unexpected response. Please try again.");
   }
 
-  const payload = await response.json();
-  if (!isIngestionResponse(payload)) {
-    throw new Error("Roomly returned an unexpected response. Please try again.");
-  }
-
-  return payload;
+  return response.data;
 }
