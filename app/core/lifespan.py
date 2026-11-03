@@ -16,7 +16,7 @@ async def lifespan(app: FastAPI):
 
     app.state.gnani_client = gnani_client
     app.state.gnani_stt = GnaniSTT(client=gnani_client)
-    app.state.gnani_tts = GnaniTTS(client=gnani_client, model="Timbre v3.0")
+    app.state.gnani_tts = GnaniTTS(client=gnani_client, model="timbre-v3.0")
 
     try:
         yield

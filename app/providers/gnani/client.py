@@ -84,28 +84,26 @@ class GnaniClient:
         *,
         json: Mapping[str, Any],
     ) -> httpx.Response:
-        try:
-            print(path, json)
-            response = await self._http.post(
-                path,
-                json=json,
-            )
-            response.raise_for_status()
-            content_type = response.headers.get("content-type", "")
-            if not content_type.startswith("audio/"):
-                raise GnaniAPIError(
-                    "Gnani returned an unexpected TTS response.",
-                    status_code=response.status_code,
-                )
+        response = await self._http.post(path, json=json)
 
+        logger.info("Gnani TTS status: %s", response.status_code)
+        logger.info("Gnani TTS response: %s", response.text)
+
+        try:
+            response.raise_for_status()
         except httpx.HTTPStatusError as exc:
             raise GnaniAPIError(
                 "Gnani rejected the TTS request.",
                 status_code=exc.response.status_code,
             ) from exc
 
-        except httpx.RequestError as exc:
-            raise GnaniAPIError("Unable to reach the Gnani API.") from exc
+        content_type = response.headers.get("content-type", "")
+
+        if not content_type.startswith("audio/") or not response.content:
+            raise GnaniAPIError(
+                "Gnani returned an invalid audio response.",
+                status_code=response.status_code,
+            )
 
         return response
 
