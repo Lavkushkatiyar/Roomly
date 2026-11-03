@@ -1,6 +1,4 @@
-
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL?.replace(/\/+$/, "") ?? "";
+import apiClient from "./client";
 
 export async function synthesizeSpeech(assistantResponse) {
   if (
@@ -13,30 +11,23 @@ export async function synthesizeSpeech(assistantResponse) {
   }
 
   let response;
-
   try {
-    response = await fetch(`${API_BASE_URL}/voice_generate/`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(assistantResponse),
+    response = await apiClient.post("voice_generate/", assistantResponse, {
+      responseType: "blob",
     });
-  } catch {
+  } catch (error) {
+    if (error?.response) {
+      throw new Error(`Speech generation failed (${error.response.status}).`);
+    }
+
     throw new Error("Could not reach Roomly speech service.");
   }
 
-  if (!response.ok) {
-    throw new Error(`Speech generation failed (${response.status}).`);
-  }
+  const audioBlob = response.data;
 
-  const contentType = response.headers.get("content-type") ?? "";
-
-  if (!contentType.startsWith("audio/")) {
+  if (!(audioBlob instanceof Blob) || !audioBlob.type.startsWith("audio/")) {
     throw new Error("Roomly returned an unexpected audio response.");
   }
-
-  const audioBlob = await response.blob();
 
   if (audioBlob.size === 0) {
     throw new Error("Roomly returned empty audio.");
