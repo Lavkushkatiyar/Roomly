@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response
 
 from app.providers.gnani.dependencies import get_gnani_tts
 from app.providers.gnani.text_to_speech import GnaniTTS
@@ -10,8 +10,14 @@ router = APIRouter(prefix="/voice_generate", tags=["VOICE_GENERATION"])
 
 @router.post("/")
 async def convert_audio(
-    response: AssistantResponse, tts_provider: GnaniTTS = Depends(get_gnani_tts)
+    response: AssistantResponse,
+    tts_provider: GnaniTTS = Depends(get_gnani_tts),
 ):
     tts_service = TTSService(provider=tts_provider)
+
     speech_audio = await tts_service.generate_speech(assistant_response=response)
-    return speech_audio
+
+    return Response(
+        content=speech_audio.audio_data,
+        media_type=speech_audio.content_type,
+    )
