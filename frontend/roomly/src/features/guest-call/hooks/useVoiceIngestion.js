@@ -1,6 +1,8 @@
 import { useCallback, useRef, useState } from "react";
 
 import { ingestVoiceRecording } from "../api/voiceIngestion";
+import { synthesizeSpeech } from "../api/text_to_voice";
+import { playAudioBlob } from "../utils/audioPlayback";
 
 const INITIAL_STATE = {
   status: "idle",
@@ -22,28 +24,20 @@ export function useVoiceIngestion() {
     }
 
     submittingRef.current = true;
-    setState({
-      status: "uploading",
-      errorMessage: null,
-      result: null,
-    });
+    setState({ status: "uploading", errorMessage: null, result: null });
 
     try {
       const result = await ingestVoiceRecording(audioBlob);
-      setState({
-        status: "complete",
-        errorMessage: null,
-        result,
-      });
+      setState({ status: "complete", errorMessage: null, result });
+
+      const speechBlob = await synthesizeSpeech(result.assistant_response);
+      await playAudioBlob(speechBlob);
     } catch (error) {
-      setState({
-        status: "error",
+      setState((current) => ({
+        ...current,
         errorMessage:
-          error instanceof Error
-            ? error.message
-            : "Voice ingestion failed. Please try again.",
-        result: null,
-      });
+          error instanceof Error ? error.message : "Voice processing failed.",
+      }));
     } finally {
       submittingRef.current = false;
     }

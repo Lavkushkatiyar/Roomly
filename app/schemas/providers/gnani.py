@@ -34,6 +34,3 @@ class SpeechGenerationResult(BaseModel):
 
     audio_data: bytes
     content_type: str
-    provider: str = "gnani"
-    model: str
-    request_id: str | None = None

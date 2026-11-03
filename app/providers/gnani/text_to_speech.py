@@ -37,10 +37,16 @@ class GnaniTTS:
             json=payload,
         )
 
+        audio_data = response.content
+        content_type = response.headers.get("content-type", "")
+
+        if not audio_data:
+            raise ValueError("Gnani TTS returned empty audio.")
+
+        if not content_type.startswith("audio/"):
+            raise ValueError(f"Unexpected audio content type: {content_type}")
+
         return SpeechGenerationResult(
-            audio_data=response.content,
-            content_type=response.headers.get("content-type", "audio/wav"),
-            provider="gnani",
-            model=self.model,
-            request_id=response.headers.get("x-api-request-id"),
+            audio_data=audio_data,
+            content_type=content_type,
         )

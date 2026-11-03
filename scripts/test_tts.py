@@ -24,10 +24,7 @@ async def main() -> None:
         output_path = Path("tts-output.wav")
         output_path.write_bytes(result.audio_data)
 
-        print(f"Provider: {result.provider}")
-        print(f"Model: {result.model}")
         print(f"Content type: {result.content_type}")
-        print(f"Request ID: {result.request_id}")
         print(f"Audio saved: {output_path.resolve()}")
 
 
