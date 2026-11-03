@@ -3,25 +3,24 @@ export async function playAudioBlob(audioBlob) {
   const audioUrl = URL.createObjectURL(audioBlob);
   const audio = new Audio(audioUrl);
 
-  const handleEnded = () => {};
-  const handleError = () => {};
-
-  let playbackPromise;
+  let handleEnded;
+  let handleError;
 
   try {
-    playbackPromise = new Promise((resolve, reject) => {
-      audio.addEventListener("ended", resolve, { once: true });
+    const playbackPromise = new Promise((resolve, reject) => {
+      handleEnded = resolve;
+      handleError = () =>
+        reject(audio.error ?? new Error("Audio playback failed."));
 
-      audio.addEventListener(
-        "error",
-        () => reject(audio.error ?? new Error("Audio playback failed.")),
-        { once: true },
-      );
+      audio.addEventListener("ended", handleEnded, { once: true });
+      audio.addEventListener("error", handleError, { once: true });
     });
 
     await audio.play();
     await playbackPromise;
   } finally {
+    audio.removeEventListener("ended", handleEnded);
+    audio.removeEventListener("error", handleError);
     audio.pause();
     audio.removeAttribute("src");
     audio.load();
