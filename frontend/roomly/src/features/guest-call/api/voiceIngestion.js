@@ -58,7 +58,7 @@ export async function ingestVoiceRecording(audioBlob) {
   try {
     response = await apiClient.post("voice/ingest", formData);
   } catch (error) {
-    throw new Error(getErrorMessage(error));
+    throw new Error(getErrorMessage(error), { cause: error });
   }
 
   if (!isIngestionResponse(response.data)) {
