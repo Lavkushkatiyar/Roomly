@@ -297,3 +297,70 @@ def test_get_conversation_context_returns_messages_oldest_first(
 
     assert result == expected_messages
     db.scalars.assert_called_once()
+
+
+def test_end_conversation_marks_conversation_as_ended():
+    db = MagicMock()
+    conversation = SimpleNamespace(
+        status=ConversationStatus.ACTIVE,
+        ended_at=None,
+    )
+
+    with patch.object(
+        ConversationServices,
+        "get_active_conversation",
+        return_value=conversation,
+    ):
+        result = ConversationServices.end_conversation(
+            db,
+            uuid.uuid4(),
+        )
+
+    assert result is conversation
+    assert conversation.status == ConversationStatus.ENDED
+    assert conversation.ended_at is not None
+    assert conversation.ended_at.tzinfo is not None
+
+    db.commit.assert_called_once()
+    db.refresh.assert_called_once_with(conversation)
+
+
+def test_end_conversation_returns_none_when_not_active():
+    db = MagicMock()
+
+    with patch.object(
+        ConversationServices,
+        "get_active_conversation",
+        return_value=None,
+    ):
+        result = ConversationServices.end_conversation(
+            db,
+            uuid.uuid4(),
+        )
+
+    assert result is None
+    db.commit.assert_not_called()
+    db.refresh.assert_not_called()
+
+
+def test_end_conversation_rolls_back_on_database_error():
+    db = MagicMock()
+    conversation = SimpleNamespace(
+        status=ConversationStatus.ACTIVE,
+        ended_at=None,
+    )
+    db.commit.side_effect = SQLAlchemyError("database failure")
+
+    with patch.object(
+        ConversationServices,
+        "get_active_conversation",
+        return_value=conversation,
+    ):
+        with pytest.raises(SQLAlchemyError):
+            ConversationServices.end_conversation(
+                db,
+                uuid.uuid4(),
+            )
+
+    assert conversation.status == ConversationStatus.ENDED
+    db.rollback.assert_called_once()

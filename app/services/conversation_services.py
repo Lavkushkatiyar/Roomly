@@ -1,4 +1,5 @@
 import uuid
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
@@ -104,3 +105,28 @@ class ConversationServices:
         messages = list(db.scalars(statement).all())
 
         return list(reversed(messages))
+
+    @staticmethod
+    def end_conversation(
+        db: Session,
+        conversation_id: uuid.UUID,
+    ) -> Conversation | None:
+        conversation = ConversationServices.get_active_conversation(
+            db,
+            conversation_id,
+        )
+
+        if conversation is None:
+            return None
+
+        conversation.status = ConversationStatus.ENDED
+        conversation.ended_at = datetime.now(UTC)
+
+        try:
+            db.commit()
+            db.refresh(conversation)
+        except SQLAlchemyError:
+            db.rollback()
+            raise
+
+        return conversation
