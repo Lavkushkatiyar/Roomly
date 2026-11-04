@@ -23,4 +23,5 @@ async def extract_tasks(raw_input_id: uuid.UUID, db: Session = Depends(get_db)):
         )
     extraction_service = TaskExtractionServices()
     result = await extraction_service.extract_tasks_from_text(raw_input.transcript)
+
     return TaskExtractionResponse(raw_input_id=raw_input_id, extraction=result)

@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.db.models.enums import RequestStatus
 from app.db.models.service_requests import ServiceRequest
 from app.schemas.service_request import ServiceRequestCreate
+from app.schemas.task_extraction import ProposedServiceRequest
 
 
 class ServiceRequestServices:
@@ -68,3 +69,22 @@ class ServiceRequestServices:
             db.refresh(service_request)
 
         return service_request
+
+    @staticmethod
+    def create_service_requests(
+        db: Session,
+        raw_input_id: uuid.UUID,
+        requests: list[ProposedServiceRequest],
+    ) -> list[ServiceRequest]:
+        service_requests = [
+            ServiceRequest(raw_input_id=raw_input_id, **request.model_dump())
+            for request in requests
+        ]
+
+        db.add_all(service_requests)
+        db.commit()
+
+        for service_request in service_requests:
+            db.refresh(service_request)
+
+        return service_requests
