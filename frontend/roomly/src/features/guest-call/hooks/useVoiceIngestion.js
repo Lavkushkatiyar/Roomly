@@ -14,19 +14,44 @@ const INITIAL_STATE = {
   errorMessage: null,
   result: null,
   confirmation: null,
+  speechBlob: null,
 };
 
 export function useVoiceIngestion() {
   const [state, setState] = useState(INITIAL_STATE);
   const submittingRef = useRef(false);
+  const speechBlobRef = useRef(null);
 
   const reset = useCallback(() => {
+    speechBlobRef.current = null;
     setState(INITIAL_STATE);
   }, []);
 
   const speak = useCallback(async (text, language) => {
-    const audioBlob = await synthesizeSpeech({ text, language });
-    await playAudioBlob(audioBlob);
+    const speechBlob = await synthesizeSpeech({ text, language });
+    speechBlobRef.current = speechBlob;
+    setState((current) => ({ ...current, speechBlob }));
+    await playAudioBlob(speechBlob);
+  }, []);
+
+  const playResponse = useCallback(async () => {
+    const speechBlob = speechBlobRef.current;
+    if (!speechBlob) {
+      return;
+    }
+
+    try {
+      await playAudioBlob(speechBlob);
+      setState((current) => ({ ...current, errorMessage: null }));
+    } catch (error) {
+      setState((current) => ({
+        ...current,
+        errorMessage:
+          error instanceof Error
+            ? `Speech playback failed: ${error.message}`
+            : "Speech playback failed.",
+      }));
+    }
   }, []);
 
   const submitRecording = useCallback(
@@ -36,6 +61,7 @@ export function useVoiceIngestion() {
       }
 
       submittingRef.current = true;
+      speechBlobRef.current = null;
       setState({
         ...INITIAL_STATE,
         status: "uploading",
@@ -169,6 +195,7 @@ export function useVoiceIngestion() {
   return {
     ...state,
     reset,
+    playResponse,
     submitRecording,
     submitConfirmation,
   };
