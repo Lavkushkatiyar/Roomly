@@ -67,3 +67,20 @@ export async function ingestVoiceRecording(audioBlob) {
 
   return response.data;
 }
+
+
+export async function confirmVoiceRecording(audioBlob) {
+  const wavBlob = await convertAudioToWav(audioBlob);
+  const formData = new FormData();
+
+  formData.append("audio", wavBlob, "roomly-confirmation.wav");
+  formData.append("guest_language", GUEST_LANGUAGE);
+
+  try {
+    const response = await apiClient.post("voice/confirm", formData);
+
+    return response.data;
+  } catch (error) {
+    throw new Error(getErrorMessage(error), { cause: error });
+  }
+}
