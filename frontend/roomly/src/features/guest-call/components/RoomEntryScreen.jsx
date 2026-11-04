@@ -36,8 +36,7 @@ export function RoomEntryScreen({ onEnter }) {
         </p>
         <h1 id="room-entry-title">Enter your room.</h1>
         <p className="room-entry__intro">
-          Enter your assigned room number and choose the language you would
-          like your concierge to speak.
+          Enter your room number and choose the language
         </p>
 
         <form className="room-entry__form" onSubmit={handleSubmit}>
