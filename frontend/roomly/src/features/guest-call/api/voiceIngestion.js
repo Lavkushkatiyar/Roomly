@@ -28,6 +28,10 @@ function isIngestionResponse(payload) {
 }
 
 function getErrorMessage(error) {
+  if (error?.code === "ECONNABORTED" || error?.code === "ETIMEDOUT") {
+    return "Roomly took too long to process this recording. Please try again.";
+  }
+
   const response = error?.response;
 
   if (!response) {
@@ -56,7 +60,9 @@ export async function ingestVoiceRecording(audioBlob) {
 
   let response;
   try {
-    response = await apiClient.post("voice/ingest", formData);
+    response = await apiClient.post("voice/ingest", formData, {
+      timeout: 420_000,
+    });
   } catch (error) {
     throw new Error(getErrorMessage(error), { cause: error });
   }
