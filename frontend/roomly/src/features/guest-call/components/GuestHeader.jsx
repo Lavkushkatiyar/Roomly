@@ -1,6 +1,4 @@
-const roomNumber = import.meta.env.VITE_ROOM_NUMBER?.trim() || "204";
-
-export function GuestHeader() {
+export function GuestHeader({ roomNumber }) {
   return (
     <header className="guest-header">
       <a className="guest-header__brand" href="/" aria-label="Roomly home">
@@ -30,10 +28,14 @@ export function GuestHeader() {
       <span className="guest-header__descriptor">Guest Concierge</span>
 
       <div className="guest-header__account">
-        <span className="guest-header__room">
-          <span className="guest-header__room-dot" aria-hidden="true" />
-          Room {roomNumber}
-        </span>
+        {roomNumber ? (
+          <span className="guest-header__room">
+            <span className="guest-header__room-dot" aria-hidden="true" />
+            Room {roomNumber}
+          </span>
+        ) : (
+          <span className="guest-header__descriptor">Guest access</span>
+        )}
         <span className="guest-header__profile" role="img" aria-label="Guest profile">
           <svg aria-hidden="true" viewBox="0 0 24 24" fill="none">
             <circle
