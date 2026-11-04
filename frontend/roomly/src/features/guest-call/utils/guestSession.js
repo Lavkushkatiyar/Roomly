@@ -1,15 +1,15 @@
 export const GUEST_LANGUAGES = [
-  { label: "English", value: "en-IN" },
-  { label: "Hindi", value: "hi-IN" },
-  { label: "Hinglish", value: "hi-en" },
-  { label: "Tamil", value: "ta-IN" },
-  { label: "Telugu", value: "te-IN" },
-  { label: "Kannada", value: "kn-IN" },
-  { label: "Malayalam", value: "ml-IN" },
-  { label: "Marathi", value: "mr-IN" },
-  { label: "Bengali", value: "bn-IN" },
-  { label: "Gujarati", value: "gu-IN" },
-  { label: "Punjabi", value: "pa-IN" },
+  { label: "English (English)", value: "en-IN" },
+  { label: "Hindi (हिन्दी)", value: "hi-IN" },
+  { label: "Hinglish (हिंग्लिश)", value: "hi-en" },
+  { label: "Tamil (தமிழ்)", value: "ta-IN" },
+  { label: "Telugu (తెలుగు)", value: "te-IN" },
+  { label: "Kannada (ಕನ್ನಡ)", value: "kn-IN" },
+  { label: "Malayalam (മലയാളം)", value: "ml-IN" },
+  { label: "Marathi (मराठी)", value: "mr-IN" },
+  { label: "Bengali (বাংলা)", value: "bn-IN" },
+  { label: "Gujarati (ગુજરાતી)", value: "gu-IN" },
+  { label: "Punjabi (ਪੰਜਾਬੀ)", value: "pa-IN" },
 ];
 
 const STORAGE_KEY = "roomly.guest-session";
