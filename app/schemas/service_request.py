@@ -8,6 +8,7 @@ from app.db.models.enums import (
     RequestPriority,
     RequestStatus,
 )
+from app.schemas.task_extraction import ProposedServiceRequest
 
 
 class ServiceRequestCreate(BaseModel):
@@ -28,3 +29,10 @@ class ServiceRequestResponse(BaseModel):
     status: RequestStatus
     created_at: datetime
     updated_at: datetime
+
+
+class ServiceRequestBatchCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    raw_input_id: uuid.UUID
+    requests: list[ProposedServiceRequest] = Field(min_length=1)
