@@ -1,8 +1,6 @@
 import apiClient from "./client";
 import { convertAudioToWav } from "../utils/audio";
 
-const ROOM_ID = import.meta.env.VITE_ROOM_ID?.trim() ?? "";
-const GUEST_LANGUAGE = import.meta.env.VITE_GUEST_LANGUAGE?.trim() || "en-IN";
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -45,18 +43,19 @@ function getErrorMessage(error) {
   return `Voice ingestion failed (${response.status}). Please try again.`;
 }
 
-export async function ingestVoiceRecording(audioBlob) {
-  if (!UUID_PATTERN.test(ROOM_ID)) {
-    throw new Error(
-      "Roomly is not configured for a hotel room. Set VITE_ROOM_ID to the UUID of an existing room.",
-    );
+export async function ingestVoiceRecording(
+  audioBlob,
+  { roomId, guestLanguage },
+) {
+  if (!UUID_PATTERN.test(roomId)) {
+    throw new Error("Roomly has no valid room selected. Please enter your room again.");
   }
 
   const wavBlob = await convertAudioToWav(audioBlob);
   const formData = new FormData();
   formData.append("audio", wavBlob, "roomly-recording.wav");
-  formData.append("room_id", ROOM_ID);
-  formData.append("guest_language", GUEST_LANGUAGE);
+  formData.append("room_id", roomId);
+  formData.append("guest_language", guestLanguage);
 
   let response;
   try {
@@ -75,12 +74,12 @@ export async function ingestVoiceRecording(audioBlob) {
 }
 
 
-export async function confirmVoiceRecording(audioBlob) {
+export async function confirmVoiceRecording(audioBlob, { guestLanguage }) {
   const wavBlob = await convertAudioToWav(audioBlob);
   const formData = new FormData();
 
   formData.append("audio", wavBlob, "roomly-confirmation.wav");
-  formData.append("guest_language", GUEST_LANGUAGE);
+  formData.append("guest_language", guestLanguage);
 
   try {
     const response = await apiClient.post("voice/confirm", formData);

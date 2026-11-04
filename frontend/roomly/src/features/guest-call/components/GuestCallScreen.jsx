@@ -9,7 +9,7 @@ import { useAudioRecorder } from "../hooks/useAudioRecorder";
 import { useVoiceIngestion } from "../hooks/useVoiceIngestion";
 import "./guest-call.css";
 
-export function GuestCallScreen() {
+export function GuestCallScreen({ roomId, guestLanguage }) {
   const {
     status: recorderStatus,
     errorMessage: recordingError,
@@ -27,7 +27,7 @@ export function GuestCallScreen() {
     submitRecording,
     submitConfirmation,
     playResponse,
-  } = useVoiceIngestion();
+  } = useVoiceIngestion({ roomId, guestLanguage });
   const submittedBlobRef = useRef(null);
 
   useEffect(() => {

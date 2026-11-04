@@ -18,7 +18,7 @@ const INITIAL_STATE = {
   conversation: [],
 };
 
-export function useVoiceIngestion() {
+export function useVoiceIngestion({ roomId, guestLanguage }) {
   const [state, setState] = useState(INITIAL_STATE);
   const submittingRef = useRef(false);
   const speechBlobRef = useRef(null);
@@ -73,7 +73,10 @@ export function useVoiceIngestion() {
       }));
 
       try {
-        const result = await ingestVoiceRecording(audioBlob);
+        const result = await ingestVoiceRecording(audioBlob, {
+          roomId,
+          guestLanguage,
+        });
         const readyStatus =
           result.extraction.tasks.length === 0
             ? "awaiting_clarification"
@@ -123,7 +126,7 @@ export function useVoiceIngestion() {
         submittingRef.current = false;
       }
     },
-    [speak],
+    [guestLanguage, roomId, speak],
   );
 
   const submitConfirmation = useCallback(
@@ -140,8 +143,9 @@ export function useVoiceIngestion() {
       }));
 
       try {
-        const confirmationResult =
-          await confirmVoiceRecording(audioBlob);
+        const confirmationResult = await confirmVoiceRecording(audioBlob, {
+          guestLanguage,
+        });
 
         const confirmation = confirmationResult.confirmation;
         const language = state.result.assistant_response.language;
@@ -271,7 +275,7 @@ export function useVoiceIngestion() {
         submittingRef.current = false;
       }
     },
-    [speak, state.result],
+    [guestLanguage, speak, state.result],
   );
 
   return {
