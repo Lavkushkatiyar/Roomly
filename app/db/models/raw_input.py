@@ -23,6 +23,12 @@ class RawInput(Base):
         nullable=False,
         index=True,
     )
+    conversation_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid,
+        ForeignKey("roomly_conversations.id", ondelete="RESTRICT"),
+        nullable=True,
+        index=True,
+    )
 
     transcript: Mapped[str] = mapped_column(
         Text,
