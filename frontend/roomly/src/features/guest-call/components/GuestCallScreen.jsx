@@ -21,8 +21,10 @@ export function GuestCallScreen() {
     status: ingestionStatus,
     errorMessage: ingestionError,
     result,
+    speechBlob,
     reset: resetIngestion,
     submitRecording,
+    playResponse,
   } = useVoiceIngestion();
   const submittedBlobRef = useRef(null);
 
@@ -84,6 +86,15 @@ export function GuestCallScreen() {
             errorMessage={errorMessage}
             retrying={ingestionStatus === "error" && Boolean(audioBlob)}
           />
+          {speechBlob && (
+            <button
+              className="call-status__play"
+              type="button"
+              onClick={playResponse}
+            >
+              Play response
+            </button>
+          )}
         </section>
         <IngestionResults result={result} />
       </div>
