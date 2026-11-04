@@ -2,29 +2,22 @@ import re
 
 from app.schemas.enums import ConfirmationStatus
 
-AFFIRMATIVE_PATTERNS = (
-    r"yes",
-    r"yes that's correct",
-    r"please do",
-)
+AFFIRMATIVE_PATTERNS = ("yes", "ok")
 
-NEGATIVE_PATTERNS = (
-    r"no",
-    r"no cancel it",
-)
+NEGATIVE_PATTERNS = ("no", "cancel", "don't")
 
 
 def classify_confirmation(transcript: str) -> ConfirmationStatus:
     normalized = re.sub(r"[^\w\s']", "", transcript.lower()).strip()
-    words = normalized.split()
+    words = normalized.split()[0]
 
     if not words or len(words) >= 4:
         return ConfirmationStatus.UNCLEAR
 
-    if normalized in AFFIRMATIVE_PATTERNS:
+    if words in AFFIRMATIVE_PATTERNS:
         return ConfirmationStatus.CONFIRMED
 
-    if normalized in NEGATIVE_PATTERNS:
+    if words in NEGATIVE_PATTERNS:
         return ConfirmationStatus.DECLINED
 
     return ConfirmationStatus.UNCLEAR

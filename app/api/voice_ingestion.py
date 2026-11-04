@@ -20,7 +20,9 @@ from app.providers.gnani.dependencies import get_gnani_stt
 from app.providers.gnani.stt import GnaniSTT
 from app.providers.reasoning.llm_factory import get_reasoning_provider
 from app.providers.reasoning.ollama import OllamaProvider
+from app.schemas.confirmation import VoiceConfirmationResponse
 from app.schemas.voice_ingestion import VoiceIngestionResponse
+from app.services.confirmation import classify_confirmation
 from app.services.voice_ingestion import VoiceIngestionServices
 
 logger = logging.getLogger(__name__)
@@ -76,6 +78,54 @@ async def ingest_voice(
     except GnaniAPIError as exc:
         logger.exception("Voice transcription failed.")
 
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Speech transcription service failed.",
+        ) from exc
+
+    finally:
+        await audio.close()
+
+
+@router.post(
+    "/confirm",
+    response_model=VoiceConfirmationResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def confirm_voice(
+    audio: UploadFile = File(...),
+    guest_language: GuestLanguage = Form(...),
+    stt_provider: GnaniSTT = Depends(get_gnani_stt),
+):
+    try:
+        audio_data = await audio.read()
+
+        transcription = await stt_provider.transcribe(
+            audio=audio_data,
+            language=guest_language.value,
+            filename=audio.filename or "recording.wav",
+        )
+
+        confirmation = classify_confirmation(transcription.text)
+
+        return VoiceConfirmationResponse(
+            transcript=transcription.text,
+            confirmation=confirmation.value,
+        )
+
+    except httpx.HTTPStatusError as exc:
+        logger.error(
+            "Gnani API rejected confirmation request: status=%s response=%s",
+            exc.response.status_code,
+            exc.response.text[:1000],
+        )
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Speech transcription service failed.",
+        ) from exc
+
+    except GnaniAPIError as exc:
+        logger.exception("Confirmation transcription failed.")
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="Speech transcription service failed.",
