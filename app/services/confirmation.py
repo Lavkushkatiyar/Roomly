@@ -9,15 +9,17 @@ NEGATIVE_PATTERNS = ("no", "cancel", "don't")
 
 def classify_confirmation(transcript: str) -> ConfirmationStatus:
     normalized = re.sub(r"[^\w\s']", "", transcript.lower()).strip()
-    words = normalized.split()[0]
+    words = normalized.split()
 
     if not words or len(words) >= 4:
         return ConfirmationStatus.UNCLEAR
 
-    if words in AFFIRMATIVE_PATTERNS:
+    first_word = words[0]
+
+    if first_word in AFFIRMATIVE_PATTERNS or normalized == "please do":
         return ConfirmationStatus.CONFIRMED
 
-    if words in NEGATIVE_PATTERNS:
+    if first_word in NEGATIVE_PATTERNS:
         return ConfirmationStatus.DECLINED
 
     return ConfirmationStatus.UNCLEAR

@@ -21,9 +21,11 @@ export function GuestCallScreen() {
     status: ingestionStatus,
     errorMessage: ingestionError,
     result,
+    conversation,
     speechBlob,
     reset: resetIngestion,
     submitRecording,
+    submitConfirmation,
     playResponse,
   } = useVoiceIngestion();
   const submittedBlobRef = useRef(null);
@@ -38,8 +40,20 @@ export function GuestCallScreen() {
     }
 
     submittedBlobRef.current = audioBlob;
-    void submitRecording(audioBlob);
-  }, [audioBlob, recorderStatus, submitRecording]);
+    if (ingestionStatus === "awaiting_confirmation") {
+      void submitConfirmation(audioBlob);
+    } else if (ingestionStatus === "awaiting_clarification") {
+      void submitRecording(audioBlob, { continueConversation: true });
+    } else {
+      void submitRecording(audioBlob);
+    }
+  }, [
+    audioBlob,
+    ingestionStatus,
+    recorderStatus,
+    submitConfirmation,
+    submitRecording,
+  ]);
 
   const toggleRecording = () => {
     if (recorderStatus === "recording") {
@@ -47,24 +61,41 @@ export function GuestCallScreen() {
       return;
     }
 
-    if (ingestionStatus === "uploading") {
+    if (
+      ingestionStatus === "uploading" ||
+      ingestionStatus === "speaking" ||
+      ingestionStatus === "confirming" ||
+      ingestionStatus === "saving"
+    ) {
       return;
     }
 
     if (ingestionStatus === "error" && audioBlob) {
-      void submitRecording(audioBlob);
+      void submitRecording(audioBlob, {
+        continueConversation:
+          result?.extraction.tasks.length === 0 && conversation.length > 0,
+      });
       return;
     }
 
     submittedBlobRef.current = null;
-    resetIngestion();
+    if (
+      ingestionStatus !== "awaiting_clarification" &&
+      ingestionStatus !== "awaiting_confirmation"
+    ) {
+      resetIngestion();
+    }
     void startRecording();
   };
 
-  const status =
-    ingestionStatus === "uploading" ||
-    ingestionStatus === "complete" ||
-    ingestionStatus === "error"
+  const recorderIsActive = [
+    "requesting",
+    "recording",
+    "processing",
+  ].includes(recorderStatus);
+  const status = recorderIsActive
+    ? recorderStatus
+    : ingestionStatus !== "idle"
       ? ingestionStatus
       : recorderStatus;
   const errorMessage = ingestionError ?? recordingError;
@@ -77,7 +108,12 @@ export function GuestCallScreen() {
           <VoiceControl
             status={status}
             onToggle={toggleRecording}
-            disabled={ingestionStatus === "uploading"}
+            disabled={[
+              "uploading",
+              "speaking",
+              "confirming",
+              "saving",
+            ].includes(ingestionStatus)}
             retryUpload={ingestionStatus === "error" && Boolean(audioBlob)}
           />
           <AudioWaveform active={status === "recording"} />

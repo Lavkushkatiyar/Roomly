@@ -15,6 +15,7 @@ const INITIAL_STATE = {
   result: null,
   confirmation: null,
   speechBlob: null,
+  conversation: [],
 };
 
 export function useVoiceIngestion() {
@@ -55,27 +56,41 @@ export function useVoiceIngestion() {
   }, []);
 
   const submitRecording = useCallback(
-    async (audioBlob) => {
+    async (audioBlob, { continueConversation = false } = {}) => {
       if (submittingRef.current) {
         return;
       }
 
       submittingRef.current = true;
       speechBlobRef.current = null;
-      setState({
-        ...INITIAL_STATE,
+      setState((current) => ({
+        ...(continueConversation
+          ? current
+          : { ...INITIAL_STATE, conversation: [] }),
         status: "uploading",
-      });
+        errorMessage: null,
+        speechBlob: null,
+      }));
 
       try {
         const result = await ingestVoiceRecording(audioBlob);
+        const readyStatus =
+          result.extraction.tasks.length === 0
+            ? "awaiting_clarification"
+            : "awaiting_confirmation";
 
-        setState({
-          status: "awaiting_confirmation",
+        setState((current) => ({
+          ...current,
+          status: "speaking",
           errorMessage: null,
           result,
           confirmation: null,
-        });
+          conversation: [
+            ...current.conversation,
+            { role: "user", text: result.raw_input.transcript },
+            { role: "assistant", text: result.assistant_response.text },
+          ],
+        }));
 
         try {
           await speak(
@@ -85,12 +100,16 @@ export function useVoiceIngestion() {
         } catch (error) {
           setState((current) => ({
             ...current,
+            status: readyStatus,
             errorMessage:
               error instanceof Error
                 ? `Speech playback failed: ${error.message}`
                 : "Speech playback failed.",
           }));
+          return;
         }
+
+        setState((current) => ({ ...current, status: readyStatus }));
       } catch (error) {
         setState((current) => ({
           ...current,
@@ -125,13 +144,16 @@ export function useVoiceIngestion() {
           await confirmVoiceRecording(audioBlob);
 
         const confirmation = confirmationResult.confirmation;
+        const language = state.result.assistant_response.language;
 
         setState((current) => ({
           ...current,
           confirmation,
+          conversation: [
+            ...current.conversation,
+            { role: "user", text: confirmationResult.transcript },
+          ],
         }));
-
-        const language = state.result.assistant_response.language;
 
         if (confirmation === "CONFIRMED") {
           setState((current) => ({
@@ -146,40 +168,100 @@ export function useVoiceIngestion() {
 
           setState((current) => ({
             ...current,
-            status: "complete",
+            status: "speaking",
             errorMessage: null,
+            conversation: [
+              ...current.conversation,
+              {
+                role: "assistant",
+                text: "Your requests have been confirmed and sent to the hotel team.",
+              },
+            ],
           }));
 
-          await speak(
-            "Your requests have been confirmed and sent to the hotel team.",
-            language,
-          );
+          try {
+            await speak(
+              "Your requests have been confirmed and sent to the hotel team.",
+              language,
+            );
+          } catch (error) {
+            setState((current) => ({
+              ...current,
+              status: "complete",
+              errorMessage:
+                error instanceof Error
+                  ? `Speech playback failed: ${error.message}`
+                  : "Speech playback failed.",
+            }));
+            return;
+          }
+
+          setState((current) => ({ ...current, status: "complete" }));
         } else if (confirmation === "DECLINED") {
           setState((current) => ({
             ...current,
-            status: "declined",
+            status: "speaking",
             errorMessage: null,
+            conversation: [
+              ...current.conversation,
+              { role: "assistant", text: "Okay, I won't send those requests." },
+            ],
           }));
 
-          await speak("Okay, I won't send those requests.", language);
+          try {
+            await speak("Okay, I won't send those requests.", language);
+          } catch (error) {
+            setState((current) => ({
+              ...current,
+              status: "declined",
+              errorMessage:
+                error instanceof Error
+                  ? `Speech playback failed: ${error.message}`
+                  : "Speech playback failed.",
+            }));
+            return;
+          }
+
+          setState((current) => ({ ...current, status: "declined" }));
         } else {
+          setState((current) => ({
+            ...current,
+            status: "speaking",
+            conversation: [
+              ...current.conversation,
+              {
+                role: "assistant",
+                text: "Sorry, I didn't catch that. Please say yes to confirm or no to cancel.",
+              },
+            ],
+          }));
+
+          try {
+            await speak(
+              "Sorry, I didn't catch that. Please say yes to confirm or no to cancel.",
+              language,
+            );
+          } catch (error) {
+            setState((current) => ({
+              ...current,
+              status: "awaiting_confirmation",
+              errorMessage:
+                error instanceof Error
+                  ? `Speech playback failed: ${error.message}`
+                  : "Speech playback failed.",
+            }));
+            return;
+          }
+
           setState((current) => ({
             ...current,
             status: "awaiting_confirmation",
           }));
-
-          await speak(
-            "Sorry, I didn't catch that. Please say yes to confirm or no to cancel.",
-            language,
-          );
         }
       } catch (error) {
         setState((current) => ({
           ...current,
-          status:
-            current.status === "saving"
-              ? "awaiting_confirmation"
-              : "awaiting_confirmation",
+          status: "awaiting_confirmation",
           errorMessage:
             error instanceof Error
               ? error.message
