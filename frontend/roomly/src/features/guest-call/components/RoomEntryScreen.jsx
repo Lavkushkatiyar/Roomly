@@ -32,11 +32,10 @@ export function RoomEntryScreen({ onEnter }) {
       <section className="room-entry__content" aria-labelledby="room-entry-title">
         <p className="room-entry__eyebrow">
           <span aria-hidden="true" />
-          Your personal guest concierge
-        </p>
+Your comfort, just one conversation away.        </p>
         <h1 id="room-entry-title">Enter your room.</h1>
         <p className="room-entry__intro">
-          Enter your room number and choose the language
+          Enter your room number and choose the language 
         </p>
 
         <form className="room-entry__form" onSubmit={handleSubmit}>
@@ -105,8 +104,7 @@ export function RoomEntryScreen({ onEnter }) {
 
         <p className="room-entry__connection">
           <span aria-hidden="true">◇</span>
-          Room number and language are remembered in this browser.
-        </p>
+Comfort is not a luxury; it's an experience.</p>
       </section>
 
       <footer className="room-entry__footer">
