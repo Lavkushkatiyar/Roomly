@@ -4,6 +4,15 @@ from enum import StrEnum
 class GuestLanguage(StrEnum):
     ENGLISH = "en-IN"
     Hindi = "hi-IN"
+    HINGLISH = "hi-en"
+    TAMIL = "ta-IN"
+    TELUGU = "te-IN"
+    KANNADA = "kn-IN"
+    MALAYALAM = "ml-IN"
+    MARATHI = "mr-IN"
+    BENGALI = "bn-IN"
+    GUJARATI = "gu-IN"
+    PUNJABI = "pa-IN"
 
 
 class RequestCategory(StrEnum):

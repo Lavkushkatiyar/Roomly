@@ -12,6 +12,18 @@ export default defineConfig(({ mode }) => {
           target: env.VITE_BACKEND_URL || 'http://127.0.0.1:8000',
           changeOrigin: true,
         },
+        '/voice_generate': {
+          target: env.VITE_BACKEND_URL || 'http://127.0.0.1:8000',
+          changeOrigin: true,
+        },
+        '/hotel_room': {
+          target: env.VITE_BACKEND_URL || 'http://127.0.0.1:8000',
+          changeOrigin: true,
+        },
+        '/service-requests': {
+          target: env.VITE_BACKEND_URL || 'http://127.0.0.1:8000',
+          changeOrigin: true,
+        },
       },
     },
   }
