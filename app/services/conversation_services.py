@@ -5,7 +5,8 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.db.models.conversation import Conversation
-from app.db.models.enums import ConversationStatus, GuestLanguage
+from app.db.models.conversation_message import ConversationMessage
+from app.db.models.enums import ConversationStatus, GuestLanguage, MessageRole
 from app.db.models.hotel_room import HotelRoom
 
 
@@ -48,3 +49,58 @@ class ConversationServices:
         )
 
         return db.scalar(statement)
+
+    @staticmethod
+    def save_message(
+        db: Session,
+        conversation_id: uuid.UUID,
+        role: MessageRole,
+        content: str,
+    ) -> ConversationMessage:
+        conversation = ConversationServices.get_active_conversation(
+            db,
+            conversation_id,
+        )
+
+        if conversation is None:
+            raise ValueError("Conversation does not exist or has ended")
+
+        message = ConversationMessage(
+            conversation_id=conversation_id,
+            role=role,
+            content=content.strip(),
+        )
+
+        try:
+            db.add(message)
+            db.commit()
+            db.refresh(message)
+        except SQLAlchemyError:
+            db.rollback()
+            raise
+
+        return message
+
+    @staticmethod
+    def get_conversation_context(
+        db: Session,
+        conversation_id: uuid.UUID,
+        limit: int = 10,
+    ) -> list[ConversationMessage]:
+        statement = (
+            select(ConversationMessage)
+            .join(
+                Conversation,
+                Conversation.id == ConversationMessage.conversation_id,
+            )
+            .where(
+                Conversation.id == conversation_id,
+                Conversation.status == ConversationStatus.ACTIVE,
+            )
+            .order_by(ConversationMessage.created_at.desc())
+            .limit(limit)
+        )
+
+        messages = list(db.scalars(statement).all())
+
+        return list(reversed(messages))
