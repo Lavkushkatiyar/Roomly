@@ -14,6 +14,7 @@ export async function synthesizeSpeech(assistantResponse) {
   try {
     response = await apiClient.post("voice_generate/", assistantResponse, {
       responseType: "blob",
+      timeout: 60_000,
     });
   } catch (error) {
     if (error?.response) {

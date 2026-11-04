@@ -5,7 +5,13 @@ const STATUS_LABELS = {
   processing: "Finishing your recording",
   recorded: "Recording complete",
   uploading: "Sending your recording",
+  speaking: "Roomly is speaking",
+  awaiting_clarification: "Tap the microphone to clarify your request",
+  awaiting_confirmation: "Tap the microphone and say yes or no",
+  confirming: "Checking your confirmation",
+  saving: "Sending confirmed requests",
   complete: "Transcript and tasks ready",
+  declined: "Requests cancelled",
   error: "Unable to complete request",
 };
 

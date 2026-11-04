@@ -8,9 +8,16 @@ export function VoiceControl({
   const isBusy =
     status === "requesting" ||
     status === "processing" ||
-    status === "uploading";
+    status === "uploading" ||
+    status === "speaking" ||
+    status === "confirming" ||
+    status === "saving";
   const label = isRecording
     ? "End voice recording"
+    : status === "awaiting_clarification"
+      ? "Speak your clarification"
+      : status === "awaiting_confirmation"
+        ? "Speak yes or no to confirm"
     : status === "complete"
       ? "Record another message"
       : status === "error"

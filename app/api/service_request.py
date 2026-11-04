@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.db.models.enums import RequestStatus
 from app.db.session import get_db
 from app.schemas.service_request import (
+    ServiceRequestBatchCreate,
     ServiceRequestCreate,
     ServiceRequestResponse,
 )
@@ -88,3 +89,19 @@ def update_request_status(
         )
 
     return service_request
+
+
+@router.post(
+    "/batch",
+    response_model=list[ServiceRequestResponse],
+    status_code=status.HTTP_201_CREATED,
+)
+def create_service_requests(
+    batch_data: ServiceRequestBatchCreate,
+    db: Session = Depends(get_db),
+):
+    return ServiceRequestServices.create_service_requests(
+        db=db,
+        raw_input_id=batch_data.raw_input_id,
+        requests=batch_data.requests,
+    )
