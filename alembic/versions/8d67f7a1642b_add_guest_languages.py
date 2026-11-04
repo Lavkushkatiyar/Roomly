@@ -1,7 +1,8 @@
-"""add supported guest languages
+"""
+add supported guest languages
 
 Revision ID: 8d67f7a1642b
-Revises: 7aa4b5d0555f
+Revises: 530e770b59c0
 Create Date: 2026-11-04 19:50:00.000000
 """
 

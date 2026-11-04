@@ -2,11 +2,10 @@ from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config, pool
 
+import app.db.models  # noqa: F401
 from alembic import context
 from app.core.config import settings
 from app.db.base import Base
-
-# Import models to register them with Base.metadata
 
 target_metadata = Base.metadata
 
@@ -28,12 +27,9 @@ print("ALEMBIC TABLES:", list(target_metadata.tables.keys()))
 def include_name(name, type_, parent_names):
     """
     Include only tables managed by this project.
-
-    Prevents Alembic from detecting tables belonging
-    to other projects sharing the same database schema.
     """
     if type_ == "table":
-        return name == "hotel_rooms"
+        return name in target_metadata.tables
 
     return True
 
