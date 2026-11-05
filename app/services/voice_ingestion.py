@@ -35,6 +35,7 @@ class VoiceIngestionServices:
         filename: str,
         room_id: uuid.UUID,
         guest_language: GuestLanguage,
+        conversation_id: uuid.UUID | None = None,
     ) -> RawInput:
         transcription = await self.stt_provider.transcribe(
             audio=audio, language=guest_language.value, filename=filename
@@ -45,7 +46,10 @@ class VoiceIngestionServices:
             raise ValueError("Transcription can not be empty")
 
         raw_input_data = RawInputCreate(
-            room_id=room_id, transcript=transcript, guest_language=guest_language
+            room_id=room_id,
+            conversation_id=conversation_id,
+            transcript=transcript,
+            guest_language=guest_language,
         )
 
         raw_input = RawInputServices.create_raw_input(
@@ -68,6 +72,7 @@ class VoiceIngestionServices:
         filename: str,
         room_id: uuid.UUID,
         guest_language: GuestLanguage,
+        conversation_id: uuid.UUID | None = None,
     ) -> VoiceIngestionResponse:
         raw_input = await self.ingest_audio(
             db=db,
@@ -75,8 +80,8 @@ class VoiceIngestionServices:
             filename=filename,
             room_id=room_id,
             guest_language=guest_language,
+            conversation_id=conversation_id,
         )
-
         extraction = await self.task_extraction_service.extract_tasks_from_text(
             transcript=raw_input.transcript,
         )
