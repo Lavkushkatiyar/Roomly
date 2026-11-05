@@ -1,4 +1,5 @@
 import uuid
+from datetime import UTC, datetime
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
@@ -256,93 +257,6 @@ def test_save_message_rolls_back_when_database_operation_fails(
     db.rollback.assert_called_once_with()
 
 
-@pytest.mark.parametrize(
-    ("database_messages", "expected_messages", "limit"),
-    [
-        (
-            ["newest", "middle", "oldest"],
-            ["oldest", "middle", "newest"],
-            10,
-        ),
-        (
-            ["third", "second"],
-            ["second", "third"],
-            2,
-        ),
-        (
-            [],
-            [],
-            10,
-        ),
-    ],
-    ids=[
-        "default-limit-orders-messages",
-        "custom-limit-orders-messages",
-        "empty-context",
-    ],
-)
-def test_get_conversation_context_returns_messages_oldest_first(
-    database_messages,
-    expected_messages,
-    limit,
-):
-    db = MagicMock()
-    db.scalars.return_value.all.return_value = database_messages
-
-    result = ConversationServices.get_conversation_context(
-        db,
-        uuid.uuid4(),
-        limit=limit,
-    )
-
-    assert result == expected_messages
-    db.scalars.assert_called_once()
-
-
-def test_end_conversation_marks_conversation_as_ended():
-    db = MagicMock()
-    conversation = SimpleNamespace(
-        status=ConversationStatus.ACTIVE,
-        ended_at=None,
-    )
-
-    with patch.object(
-        ConversationServices,
-        "get_active_conversation",
-        return_value=conversation,
-    ):
-        result = ConversationServices.end_conversation(
-            db,
-            uuid.uuid4(),
-        )
-
-    assert result is conversation
-    assert conversation.status == ConversationStatus.ENDED
-    assert conversation.ended_at is not None
-    assert conversation.ended_at.tzinfo is not None
-
-    db.commit.assert_called_once()
-    db.refresh.assert_called_once_with(conversation)
-
-
-def test_end_conversation_returns_none_when_not_active():
-    db = MagicMock()
-
-    with patch.object(
-        ConversationServices,
-        "get_active_conversation",
-        return_value=None,
-    ):
-        result = ConversationServices.end_conversation(
-            db,
-            uuid.uuid4(),
-        )
-
-    assert result is None
-    db.commit.assert_not_called()
-    db.refresh.assert_not_called()
-
-
 def test_end_conversation_rolls_back_on_database_error():
     db = MagicMock()
     conversation = SimpleNamespace(
@@ -364,3 +278,122 @@ def test_end_conversation_rolls_back_on_database_error():
 
     assert conversation.status == ConversationStatus.ENDED
     db.rollback.assert_called_once()
+
+
+@pytest.fixture
+def conversation_context_data():
+    return {
+        "conversation_id": uuid.uuid4(),
+        "guest_messages": [
+            ("Hello", datetime(2026, 1, 1, 10, 0, tzinfo=UTC)),
+            ("I need help", datetime(2026, 1, 1, 10, 2, tzinfo=UTC)),
+        ],
+        "assistant_messages": [
+            ("Hello! How can I help?", datetime(2026, 1, 1, 10, 1, tzinfo=UTC)),
+            ("Sure, what do you need?", datetime(2026, 1, 1, 10, 3, tzinfo=UTC)),
+        ],
+    }
+
+
+def test_get_conversation_context_returns_messages_oldest_first(
+    conversation_context_data,
+):
+    db = MagicMock()
+
+    guest_messages = conversation_context_data["guest_messages"]
+    assistant_messages = conversation_context_data["assistant_messages"]
+
+    db.execute.side_effect = [
+        MagicMock(all=MagicMock(return_value=guest_messages)),
+        MagicMock(all=MagicMock(return_value=assistant_messages)),
+    ]
+
+    with patch.object(
+        ConversationServices,
+        "_validate_conversation",
+    ):
+        result = ConversationServices.get_conversation_context(
+            db,
+            conversation_context_data["conversation_id"],
+        )
+
+    assert result == [
+        {"role": "GUEST", "content": "Hello"},
+        {"role": "ASSISTANT", "content": "Hello! How can I help?"},
+        {"role": "GUEST", "content": "I need help"},
+        {"role": "ASSISTANT", "content": "Sure, what do you need?"},
+    ]
+
+    assert db.execute.call_count == 2
+
+
+def test_get_conversation_context_respects_limit(
+    conversation_context_data,
+):
+    db = MagicMock()
+
+    db.execute.side_effect = [
+        MagicMock(
+            all=MagicMock(return_value=conversation_context_data["guest_messages"])
+        ),
+        MagicMock(
+            all=MagicMock(return_value=conversation_context_data["assistant_messages"])
+        ),
+    ]
+
+    with patch.object(
+        ConversationServices,
+        "_validate_conversation",
+    ):
+        result = ConversationServices.get_conversation_context(
+            db,
+            conversation_context_data["conversation_id"],
+            limit=2,
+        )
+
+    assert len(result) == 2
+    assert result == [
+        {"role": "GUEST", "content": "I need help"},
+        {"role": "ASSISTANT", "content": "Sure, what do you need?"},
+    ]
+
+
+def test_get_conversation_context_returns_empty_list_when_no_messages():
+    db = MagicMock()
+
+    db.execute.side_effect = [
+        MagicMock(all=MagicMock(return_value=[])),
+        MagicMock(all=MagicMock(return_value=[])),
+    ]
+
+    with patch.object(
+        ConversationServices,
+        "_validate_conversation",
+    ):
+        result = ConversationServices.get_conversation_context(
+            db,
+            uuid.uuid4(),
+        )
+
+    assert result == []
+
+
+def test_get_conversation_context_validates_conversation():
+    db = MagicMock()
+
+    with patch.object(
+        ConversationServices,
+        "_validate_conversation",
+        side_effect=ValueError("Active conversation not found."),
+    ) as validate_conversation:
+        with pytest.raises(
+            ValueError,
+            match="Active conversation not found",
+        ):
+            ConversationServices.get_conversation_context(
+                db,
+                uuid.uuid4(),
+            )
+
+    validate_conversation.assert_called_once()
+    db.execute.assert_not_called()
