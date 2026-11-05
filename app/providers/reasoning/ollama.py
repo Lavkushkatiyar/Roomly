@@ -49,6 +49,8 @@ IMPORTANT RULES:
 
 - Always distinguish the current utterance from previous messages.
 - Use previous conversation only to understand context and references.
+- The newest "Pending service requests" entry in the conversation history
+  is authoritative; use its complete task list for confirmation or modification.
 - Never re-extract an old request as a new request.
 - A confirmation must refer to an actual pending proposal.
 - A modification must refer to an identifiable pending proposal.

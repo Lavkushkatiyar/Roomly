@@ -10,7 +10,10 @@ from app.db.models.enums import (
     ConversationStatus,
     GuestLanguage,
     MessageRole,
+    RequestCategory,
+    RequestPriority,
 )
+from app.schemas.task_extraction import ProposedServiceRequest
 from app.services.conversation_services import ConversationServices
 
 
@@ -397,3 +400,55 @@ def test_get_conversation_context_validates_conversation():
 
     validate_conversation.assert_called_once()
     db.execute.assert_not_called()
+
+
+def test_get_pending_proposal_restores_tasks_and_source_input():
+    db = MagicMock()
+    conversation_id = uuid.uuid4()
+    raw_input_id = uuid.uuid4()
+    task = ProposedServiceRequest(
+        category=RequestCategory.HOUSEKEEPING,
+        staff_summary="Deliver two towels",
+        priority=RequestPriority.MEDIUM,
+    )
+    db.scalar.return_value = (
+        "I can arrange that.\n[roomly-pending-tasks:"
+        f'{{"raw_input_id":"{raw_input_id}",'
+        '"tasks":[{"category":"HOUSEKEEPING",'
+        '"staff_summary":"Deliver two towels","priority":"MEDIUM"}]}]'
+    )
+
+    result = ConversationServices.get_pending_proposal(db, conversation_id)
+
+    assert result == (raw_input_id, [task])
+    db.scalar.assert_called_once()
+
+
+def test_get_conversation_context_includes_structured_pending_tasks():
+    db = MagicMock()
+    conversation_id = uuid.uuid4()
+    assistant_message = (
+        "I can arrange that.\n[roomly-pending-tasks:"
+        '{"raw_input_id":null,"tasks":[{"category":"HOUSEKEEPING",'
+        '"staff_summary":"Deliver two towels","priority":"MEDIUM"}]}]'
+    )
+    db.execute.side_effect = [
+        MagicMock(all=MagicMock(return_value=[])),
+        MagicMock(
+            all=MagicMock(
+                return_value=[
+                    (assistant_message, datetime(2026, 1, 1, 10, 0, tzinfo=UTC))
+                ]
+            )
+        ),
+    ]
+
+    with patch.object(ConversationServices, "_validate_conversation"):
+        result = ConversationServices.get_conversation_context(
+            db,
+            conversation_id,
+        )
+
+    assert len(result) == 1
+    assert "Pending service requests" in result[0]["content"]
+    assert '"staff_summary":"Deliver two towels"' in result[0]["content"]
