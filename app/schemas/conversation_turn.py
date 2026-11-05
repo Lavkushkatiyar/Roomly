@@ -3,6 +3,7 @@ from enum import StrEnum
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.schemas.assistant import AssistantResponse
+from app.schemas.raw_input import RawInputResponse
 from app.schemas.task_extraction import ProposedServiceRequest
 
 
@@ -21,3 +22,10 @@ class ConversationTurnResult(BaseModel):
     intent: ConversationIntent
     tasks: list[ProposedServiceRequest] = Field(default_factory=list)
     assistant_response: AssistantResponse
+
+
+class ConversationTurnResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    raw_input: RawInputResponse
+    turn: ConversationTurnResult

@@ -7,6 +7,7 @@ from app.db.models.enums import GuestLanguage
 from app.db.models.raw_input import RawInput
 from app.providers.gnani.stt import GnaniSTT
 from app.providers.reasoning.ollama import OllamaProvider
+from app.schemas.conversation_turn import ConversationTurnResponse
 from app.schemas.raw_input import RawInputCreate, RawInputResponse
 from app.schemas.voice_ingestion import VoiceIngestionResponse
 from app.services.conversation_services import ConversationServices
@@ -107,4 +108,38 @@ class VoiceIngestionServices:
             raw_input=RawInputResponse.model_validate(raw_input),
             extraction=extraction,
             assistant_response=assistant_response,
+        )
+
+    async def process_conversation_turn(
+        self,
+        db: Session,
+        audio: bytes,
+        filename: str,
+        room_id: uuid.UUID,
+        guest_language: GuestLanguage,
+        conversation_id: uuid.UUID,
+    ) -> ConversationTurnResponse:
+        context = ConversationServices.get_conversation_context(
+            db=db,
+            conversation_id=conversation_id,
+        )
+
+        raw_input = await self.ingest_audio(
+            db=db,
+            audio=audio,
+            filename=filename,
+            room_id=room_id,
+            guest_language=guest_language,
+            conversation_id=conversation_id,
+        )
+
+        turn = await self.reasoning_provider.process_turn(
+            transcript=raw_input.transcript,
+            language=raw_input.guest_language.value,
+            context=context,
+        )
+
+        return ConversationTurnResponse(
+            raw_input=RawInputResponse.model_validate(raw_input),
+            turn=turn,
         )
