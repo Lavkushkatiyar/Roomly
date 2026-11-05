@@ -17,6 +17,7 @@ class TaskExtractionServices:
     async def extract_tasks_from_text(
         self,
         transcript: str,
+        context: list[dict[str, str]] | None = None,
     ) -> TaskExtractionResult:
         normalized_transcript = transcript.strip()
 
@@ -27,6 +28,7 @@ class TaskExtractionServices:
 
         result = await self.reasoning_provider.extract_tasks(
             transcript=normalized_transcript,
+            context=context,
         )
 
         logger.info(

@@ -1,10 +1,68 @@
 import httpx
 
 from app.schemas.assistant import AssistantResponse
+from app.schemas.conversation_turn import ConversationTurnResult
 from app.schemas.task_extraction import TaskExtractionResult
 
 
 class OllamaProvider:
+    TURN_SYSTEM_PROMPT = """
+You are ROOMLY, an AI hotel concierge.
+
+Your task is to understand the guest's CURRENT utterance using the
+previous conversation and return one structured conversation result.
+
+Supported intents:
+
+1. NEW_REQUEST
+   The guest is making a new hotel service request.
+   Extract all actionable tasks.
+   Ask the guest to confirm the proposed tasks.
+
+2. CONFIRMATION
+   The guest explicitly approves the pending proposal.
+   Return the COMPLETE pending task list from the conversation.
+   Never invent or add tasks.
+   If no clear pending proposal exists, return UNCLEAR.
+
+3. REJECTION
+   The guest declines or cancels the pending proposal.
+   Return an empty task list.
+   Acknowledge the rejection.
+
+4. MODIFICATION
+   The guest changes an existing pending proposal.
+   Return the COMPLETE revised task list, not just the changed item.
+   Ask the guest to confirm the revised proposal.
+   If the intended modification is ambiguous, return UNCLEAR.
+
+5. GENERAL_CONVERSATION
+   The guest is chatting, greeting, thanking, or asking a general
+   conversational question unrelated to a service request.
+   Return an empty task list.
+
+6. UNCLEAR
+   The guest's intention cannot be determined reliably.
+   Return an empty task list and ask for clarification.
+
+IMPORTANT RULES:
+
+- Always distinguish the current utterance from previous messages.
+- Use previous conversation only to understand context and references.
+- Never re-extract an old request as a new request.
+- A confirmation must refer to an actual pending proposal.
+- A modification must refer to an identifiable pending proposal.
+- Never treat a general acknowledgement as confirmation automatically.
+- Never claim that a request has been submitted, registered, or completed.
+- The backend handles persistence and confirmation validation.
+- Generate the assistant response in the requested guest language.
+- Keep responses concise, polite, and natural.
+- Task staff_summary must always be in English.
+- Preserve quantities and important details.
+- Split independent service requests into separate tasks.
+
+Return only data matching the supplied JSON schema.
+"""
     RESPONSE_SYSTEM_PROMPT = """
 You are ROOMLY, a conversational hotel concierge.
 
@@ -201,3 +259,60 @@ Return only the requested structured output.
             text=generated.text,
             language=language,
         )
+
+    async def process_turn(
+        self,
+        transcript: str,
+        language: str,
+        context: list[dict[str, str]] | None = None,
+    ) -> ConversationTurnResult:
+        normalized_transcript = transcript.strip()
+
+        if not normalized_transcript:
+            raise ValueError("Transcript cannot be empty.")
+
+        conversation_history = "\n".join(
+            f"{message['role']}: {message['content']}" for message in (context or [])
+        )
+
+        user_content = (
+            f"Guest language: {language}\n\n"
+            f"Previous conversation:\n"
+            f"{conversation_history or 'No previous conversation.'}\n\n"
+            f"Current guest utterance:\n{normalized_transcript}"
+        )
+
+        payload = {
+            "model": self.model,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": self.TURN_SYSTEM_PROMPT,
+                },
+                {
+                    "role": "user",
+                    "content": user_content,
+                },
+            ],
+            "stream": False,
+            "think": False,
+            "format": ConversationTurnResult.model_json_schema(),
+            "options": {
+                "temperature": 0,
+                "num_ctx": 8192,
+            },
+        }
+
+        async with httpx.AsyncClient(
+            timeout=self.timeout,
+        ) as client:
+            response = await client.post(
+                self.url,
+                json=payload,
+            )
+            response.raise_for_status()
+
+        result = response.json()
+        content = result["message"]["content"]
+
+        return ConversationTurnResult.model_validate_json(content)

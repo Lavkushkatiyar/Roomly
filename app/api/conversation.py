@@ -19,7 +19,7 @@ from app.providers.gnani.stt import GnaniSTT
 from app.providers.reasoning.llm_factory import get_reasoning_provider
 from app.providers.reasoning.ollama import OllamaProvider
 from app.schemas.conversation import ConversationCreate, ConversationResponse
-from app.schemas.voice_ingestion import VoiceIngestionResponse
+from app.schemas.conversation_turn import ConversationTurnResponse
 from app.services.conversation_services import ConversationServices
 from app.services.voice_ingestion import VoiceIngestionServices
 
@@ -119,7 +119,7 @@ def end_conversation(
 
 @router.post(
     "/{conversation_id}/turns",
-    response_model=VoiceIngestionResponse,
+    response_model=ConversationTurnResponse,
     status_code=status.HTTP_201_CREATED,
 )
 async def create_conversation_turn(
@@ -148,7 +148,7 @@ async def create_conversation_turn(
             reasoning_provider=reasoning_provider,
         )
 
-        result = await ingestion_service.ingest_and_extract(
+        result = await ingestion_service.process_conversation_turn(
             db=db,
             audio=audio_data,
             filename=audio.filename or "recording.wav",
@@ -156,12 +156,11 @@ async def create_conversation_turn(
             guest_language=conversation.guest_language,
             conversation_id=conversation.id,
         )
-
         ConversationServices.save_message(
             db=db,
             conversation_id=conversation.id,
             role=MessageRole.ASSISTANT,
-            content=result.assistant_response.text,
+            content=result.turn.assistant_response.text,
         )
 
         return result

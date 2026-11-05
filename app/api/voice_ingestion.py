@@ -42,6 +42,7 @@ async def ingest_voice(
     db: Session = Depends(get_db),
     stt_provider: GnaniSTT = Depends(get_gnani_stt),
     ollama_provider: OllamaProvider = Depends(get_reasoning_provider),
+    conversation_id: uuid.UUID | None = None,
 ):
     try:
         audio_data = await audio.read()
@@ -56,6 +57,7 @@ async def ingest_voice(
             filename=audio.filename or "recording.wav",
             room_id=room_id,
             guest_language=guest_language,
+            conversation_id=conversation_id,
         )
 
     except httpx.HTTPStatusError as exc:
