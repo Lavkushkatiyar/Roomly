@@ -1,7 +1,9 @@
+from datetime import datetime
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.db.models.enums import ConversationStatus, GuestLanguage
 from app.schemas.enums import ResponseType
 
 
@@ -23,3 +25,21 @@ class AssistantResponse(BaseModel):
     language: str
     response_type: ResponseType
     audio: AudioOutput | None = None
+
+
+class ConversationCreate(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    room_id: UUID
+    guest_language: GuestLanguage
+
+
+class ConversationResponse(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    id: UUID
+    room_id: UUID
+    guest_language: GuestLanguage
+    status: ConversationStatus
+    started_at: datetime
+    ended_at: datetime | None

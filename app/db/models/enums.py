@@ -33,3 +33,13 @@ class RequestStatus(StrEnum):
     ASSIGNED = "ASSIGNED"
     IN_PROGRESS = "IN_PROGRESS"
     RESOLVED = "RESOLVED"
+
+
+class ConversationStatus(StrEnum):
+    ACTIVE = "ACTIVE"
+    ENDED = "ENDED"
+
+
+class MessageRole(StrEnum):
+    GUEST = "GUEST"
+    ASSISTANT = "ASSISTANT"
