@@ -8,6 +8,7 @@ class ReasoningProvider(Protocol):
     async def extract_tasks(
         self,
         transcript: str,
+        context: list[dict[str, str]] | None = None,
     ) -> TaskExtractionResult: ...
 
     async def generate_response(

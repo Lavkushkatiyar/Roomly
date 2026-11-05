@@ -48,6 +48,14 @@ RULES:
 4. Preserve quantities and important details.
 5. Write concise, actionable staff summaries in English.
 6. If no service request exists, return an empty tasks list.
+7. Use conversation context only to understand references,
+   follow-ups and missing details in the current utterance.
+8. Extract tasks only from the current guest utterance,
+   using previous messages as supporting context.
+9. Never extract an old request again merely because it
+   appears in conversation history.
+10. If the current utterance is a confirmation or a general
+    conversational response, do not create a new service request.
 
 CATEGORY CLASSIFICATION:
 
@@ -93,17 +101,30 @@ Return only the requested structured output.
     async def extract_tasks(
         self,
         transcript: str,
+        context: list[dict[str, str]] | None = None,
     ) -> TaskExtractionResult:
-        print("request_recieved", transcript)
         schema = TaskExtractionResult.model_json_schema()
+
+        conversation_history = "\n".join(
+            f"{message['role']}: {message['content']}" for message in (context or [])
+        )
+
+        user_content = (
+            f"Previous conversation:\n"
+            f"{conversation_history or 'No previous conversation.'}\n\n"
+            f"Current guest utterance:\n{transcript}"
+        )
 
         payload = {
             "model": self.model,
             "messages": [
-                {"role": "system", "content": self.SYSTEM_PROMPT},
+                {
+                    "role": "system",
+                    "content": self.SYSTEM_PROMPT,
+                },
                 {
                     "role": "user",
-                    "content": transcript,
+                    "content": user_content,
                 },
             ],
             "stream": False,
@@ -118,7 +139,6 @@ Return only the requested structured output.
         async with httpx.AsyncClient(
             timeout=self.timeout,
         ) as client:
-            print(payload, "payloadggit")
             response = await client.post(
                 self.url,
                 json=payload,
