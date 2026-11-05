@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 
+from app.api.conversation import router as conversation_router
 from app.api.hotel_room import router as hotel_room_router
 from app.api.raw_input import router as raw_input_router
 from app.api.service_request import router as service_request_router
@@ -15,3 +16,5 @@ api_router.include_router(service_request_router)
 api_router.include_router(task_extraction_router)
 api_router.include_router(voice_router)
 api_router.include_router(tts_router)
+
+api_router.include_router(conversation_router)

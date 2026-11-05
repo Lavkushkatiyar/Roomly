@@ -27,14 +27,14 @@ class AssistantResponse(BaseModel):
     audio: AudioOutput | None = None
 
 
-class ConversationCreate:
+class ConversationCreate(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
     room_id: UUID
     guest_language: GuestLanguage
 
 
-class ConversationResponse:
+class ConversationResponse(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
     id: UUID
