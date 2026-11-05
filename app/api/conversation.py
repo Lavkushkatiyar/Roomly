@@ -29,7 +29,10 @@ from app.schemas.conversation_turn import (
     ConversationTurnAudio,
     ConversationTurnResponse,
 )
-from app.services.conversation_services import ConversationServices
+from app.services.conversation_services import (
+    ConversationServices,
+    is_conversation_closing_utterance,
+)
 from app.services.service_requests import ServiceRequestServices
 from app.services.tts_service import TTSService
 from app.services.voice_ingestion import VoiceIngestionServices
@@ -178,6 +181,10 @@ async def _process_audio_turn(
         conversation_id=conversation.id,
     )
     turn = result.turn
+    conversation_ended = (
+        turn.intent == ConversationIntent.GENERAL_CONVERSATION
+        and is_conversation_closing_utterance(result.raw_input.transcript)
+    )
     confirmed_raw_input_id = None
 
     if turn.intent == ConversationIntent.CONFIRMATION:
@@ -206,6 +213,10 @@ async def _process_audio_turn(
         pending_tasks = turn.tasks
         pending_raw_input_id = result.raw_input.id if turn.tasks else None
 
+    if conversation_ended:
+        pending_tasks = []
+        pending_raw_input_id = None
+
     try:
         speech = await TTSService(provider=tts_provider).generate_speech(
             assistant_response=turn.assistant_response,
@@ -233,8 +244,20 @@ async def _process_audio_turn(
         pending_raw_input_id=pending_raw_input_id,
     )
 
+    if conversation_ended:
+        ended_conversation = ConversationServices.end_conversation(
+            db=db,
+            conversation_id=conversation.id,
+        )
+        if ended_conversation is None:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Conversation could not be ended.",
+            )
+
     return ConversationTurnResponse(
         conversation_id=conversation.id,
+        conversation_ended=conversation_ended,
         raw_input=result.raw_input,
         turn=turn,
         audio=ConversationTurnAudio(
