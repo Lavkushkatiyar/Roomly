@@ -12,6 +12,7 @@ function isConversationTurnResponse(payload) {
     payload !== null &&
     typeof payload === "object" &&
     typeof payload.conversation_id === "string" &&
+    typeof payload.conversation_ended === "boolean" &&
     payload.raw_input !== null &&
     typeof payload.raw_input?.transcript === "string" &&
     payload.turn !== null &&

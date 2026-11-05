@@ -11,7 +11,12 @@ const INITIAL_STATE = {
   conversation: [],
 };
 
-function getReadyStatus(turn) {
+function getReadyStatus(result) {
+  if (result.conversation_ended) {
+    return "conversation_ended";
+  }
+
+  const { turn } = result;
   if (turn.intent === "CONFIRMATION") {
     return "complete";
   }
@@ -54,9 +59,11 @@ export function useConversationTurn({ roomId, guestLanguage }) {
           guestLanguage,
           conversationId: conversationIdRef.current,
         });
-        conversationIdRef.current = result.conversation_id;
+        conversationIdRef.current = result.conversation_ended
+          ? null
+          : result.conversation_id;
         speechBlobRef.current = result.speechBlob;
-        const readyStatus = getReadyStatus(result.turn);
+        const readyStatus = getReadyStatus(result);
 
         setState((current) => ({
           ...current,

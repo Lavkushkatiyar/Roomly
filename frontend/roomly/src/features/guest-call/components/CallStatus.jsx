@@ -11,6 +11,7 @@ const STATUS_LABELS = {
   confirming: "Checking your confirmation",
   saving: "Sending confirmed requests",
   complete: "Transcript and tasks ready",
+  conversation_ended: "Conversation ended · Tap to start again",
   declined: "Requests cancelled",
   error: "Unable to complete request",
 };
