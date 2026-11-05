@@ -9,6 +9,7 @@ from app.providers.gnani.stt import GnaniSTT
 from app.providers.reasoning.ollama import OllamaProvider
 from app.schemas.raw_input import RawInputCreate, RawInputResponse
 from app.schemas.voice_ingestion import VoiceIngestionResponse
+from app.services.conversation_services import ConversationServices
 from app.services.raw_input_services import RawInputServices
 from app.services.task_extraction import TaskExtractionServices
 
@@ -74,6 +75,15 @@ class VoiceIngestionServices:
         guest_language: GuestLanguage,
         conversation_id: uuid.UUID | None = None,
     ) -> VoiceIngestionResponse:
+        context = (
+            ConversationServices.get_conversation_context(
+                db=db,
+                conversation_id=conversation_id,
+            )
+            if conversation_id is not None
+            else None
+        )
+
         raw_input = await self.ingest_audio(
             db=db,
             audio=audio,
@@ -82,9 +92,12 @@ class VoiceIngestionServices:
             guest_language=guest_language,
             conversation_id=conversation_id,
         )
+
         extraction = await self.task_extraction_service.extract_tasks_from_text(
             transcript=raw_input.transcript,
+            context=context,
         )
+
         assistant_response = await self.reasoning_provider.generate_response(
             extraction=extraction,
             language=raw_input.guest_language.value,
