@@ -52,6 +52,13 @@ class ConversationServices:
         return db.scalar(statement)
 
     @staticmethod
+    def get_all_conversations(
+        db: Session,
+    ):
+        statement = select(Conversation)
+        return list(db.scalars(statement).all())
+
+    @staticmethod
     def save_message(
         db: Session,
         conversation_id: uuid.UUID,
