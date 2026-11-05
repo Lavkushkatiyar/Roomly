@@ -6,7 +6,7 @@ import { GreetingSection } from "./GreetingSection";
 import { IngestionResults } from "./IngestionResults";
 import { VoiceControl } from "./VoiceControl";
 import { useAudioRecorder } from "../hooks/useAudioRecorder";
-import { useVoiceIngestion } from "../hooks/useVoiceIngestion";
+import { useConversationTurn } from "../hooks/useConversationTurn";
 import "./guest-call.css";
 
 export function GuestCallScreen({ roomId, guestLanguage }) {
@@ -21,13 +21,10 @@ export function GuestCallScreen({ roomId, guestLanguage }) {
     status: ingestionStatus,
     errorMessage: ingestionError,
     result,
-    conversation,
     speechBlob,
-    reset: resetIngestion,
     submitRecording,
-    submitConfirmation,
     playResponse,
-  } = useVoiceIngestion({ roomId, guestLanguage });
+  } = useConversationTurn({ roomId, guestLanguage });
   const submittedBlobRef = useRef(null);
 
   useEffect(() => {
@@ -40,18 +37,10 @@ export function GuestCallScreen({ roomId, guestLanguage }) {
     }
 
     submittedBlobRef.current = audioBlob;
-    if (ingestionStatus === "awaiting_confirmation") {
-      void submitConfirmation(audioBlob);
-    } else if (ingestionStatus === "awaiting_clarification") {
-      void submitRecording(audioBlob, { continueConversation: true });
-    } else {
-      void submitRecording(audioBlob);
-    }
+    void submitRecording(audioBlob);
   }, [
     audioBlob,
-    ingestionStatus,
     recorderStatus,
-    submitConfirmation,
     submitRecording,
   ]);
 
@@ -71,20 +60,11 @@ export function GuestCallScreen({ roomId, guestLanguage }) {
     }
 
     if (ingestionStatus === "error" && audioBlob) {
-      void submitRecording(audioBlob, {
-        continueConversation:
-          result?.extraction.tasks.length === 0 && conversation.length > 0,
-      });
+      void submitRecording(audioBlob);
       return;
     }
 
     submittedBlobRef.current = null;
-    if (
-      ingestionStatus !== "awaiting_clarification" &&
-      ingestionStatus !== "awaiting_confirmation"
-    ) {
-      resetIngestion();
-    }
     void startRecording();
   };
 
