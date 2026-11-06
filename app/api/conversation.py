@@ -37,10 +37,49 @@ from app.services.voice_ingestion import VoiceIngestionServices
 
 logger = logging.getLogger(__name__)
 
-CONFIRMATION_RESPONSE = (
-    "Your request is being sent to the hotel team. "
-    "If you need anything else, please make a new request."
-)
+CONFIRMATION_RESPONSES = {
+    GuestLanguage.ENGLISH: (
+        "Your request is being sent to the hotel team. "
+        "If you need anything else, please make a new request."
+    ),
+    GuestLanguage.Hindi: (
+        "आपका अनुरोध होटल टीम को भेजा जा रहा है। "
+        "अगर आपको किसी और चीज़ की ज़रूरत हो, तो कृपया नया अनुरोध करें।"
+    ),
+    GuestLanguage.HINGLISH: (
+        "Aapka request hotel team ko bheja ja raha hai. "
+        "Agar aapko kisi aur cheez ki zaroorat ho, toh kripya naya request karein."
+    ),
+    GuestLanguage.TAMIL: (
+        "உங்கள் கோரிக்கை ஹோட்டல் குழுவிற்கு அனுப்பப்படுகிறது. "
+        "வேறு ஏதாவது தேவைப்பட்டால், தயவுசெய்து புதிய கோரிக்கையைத் தொடங்குங்கள்."
+    ),
+    GuestLanguage.TELUGU: (
+        "మీ అభ్యర్థన హోటల్ బృందానికి పంపబడుతోంది. మీకు వేరే ఏదైనా అవసరమైతే, దయచేసి కొత్త అభ్యర్థనను ప్రారంభించండి."
+    ),
+    GuestLanguage.KANNADA: (
+        "ನಿಮ್ಮ ವಿನಂತಿಯನ್ನು ಹೋಟೆಲ್ ತಂಡಕ್ಕೆ ಕಳುಹಿಸಲಾಗುತ್ತಿದೆ. "
+        "ಬೇರೆ ಏನಾದರೂ ಬೇಕಿದ್ದರೆ, ದಯವಿಟ್ಟು ಹೊಸ ವಿನಂತಿಯನ್ನು ಪ್ರಾರಂಭಿಸಿ."
+    ),
+    GuestLanguage.MALAYALAM: (
+        "നിങ്ങളുടെ അഭ്യർത്ഥന ഹോട്ടൽ ടീമിന് അയയ്ക്കുകയാണ്. "
+        "മറ്റെന്തെങ്കിലും ആവശ്യമുണ്ടെങ്കിൽ, ദയവായി പുതിയ അഭ്യർത്ഥന ആരംഭിക്കുക."
+    ),
+    GuestLanguage.MARATHI: (
+        "आपली विनंती हॉटेल टीमकडे पाठवली जात आहे. आणखी काही हवे असल्यास, कृपया नवीन विनंती करा."
+    ),
+    GuestLanguage.BENGALI: (
+        "আপনার অনুরোধটি হোটেল টিমের কাছে পাঠানো হচ্ছে। "
+        "আর কিছু প্রয়োজন হলে, অনুগ্রহ করে নতুন অনুরোধ করুন।"
+    ),
+    GuestLanguage.GUJARATI: (
+        "તમારી વિનંતી હોટેલ ટીમને મોકલવામાં આવી રહી છે. "
+        "બીજું કંઈ જરૂરી હોય, તો કૃપા કરીને નવી વિનંતી કરો."
+    ),
+    GuestLanguage.PUNJABI: (
+        "ਤੁਹਾਡੀ ਬੇਨਤੀ ਹੋਟਲ ਟੀਮ ਨੂੰ ਭੇਜੀ ਜਾ ਰਹੀ ਹੈ। ਹੋਰ ਕੁਝ ਚਾਹੀਦਾ ਹੋਵੇ, ਤਾਂ ਕਿਰਪਾ ਕਰਕੇ ਨਵੀਂ ਬੇਨਤੀ ਕਰੋ।"
+    ),
+}
 
 CONVERSATION_CLOSING_RESPONSES = {
     GuestLanguage.ENGLISH: (
@@ -242,7 +281,7 @@ async def _process_audio_turn(
             turn = turn.model_copy(
                 update={
                     "assistant_response": AssistantResponse(
-                        text=CONFIRMATION_RESPONSE,
+                        text=CONFIRMATION_RESPONSES[conversation.guest_language],
                         language=conversation.guest_language.value,
                     )
                 }

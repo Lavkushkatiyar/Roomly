@@ -26,7 +26,70 @@ from app.services.voice_ingestion import VoiceIngestionServices
 
 
 @pytest.mark.asyncio
-async def test_conversation_turn_processes_and_persists_confirmation():
+@pytest.mark.parametrize(
+    ("guest_language", "confirmation_response"),
+    [
+        (
+            GuestLanguage.ENGLISH,
+            "Your request is being sent to the hotel team. "
+            "If you need anything else, please make a new request.",
+        ),
+        (
+            GuestLanguage.Hindi,
+            "आपका अनुरोध होटल टीम को भेजा जा रहा है। "
+            "अगर आपको किसी और चीज़ की ज़रूरत हो, तो कृपया नया अनुरोध करें।",
+        ),
+        (
+            GuestLanguage.HINGLISH,
+            "Aapka request hotel team ko bheja ja raha hai. "
+            "Agar aapko kisi aur cheez ki zaroorat ho, toh kripya naya request karein.",
+        ),
+        (
+            GuestLanguage.TAMIL,
+            "உங்கள் கோரிக்கை ஹோட்டல் குழுவிற்கு அனுப்பப்படுகிறது. "
+            "வேறு ஏதாவது தேவைப்பட்டால், தயவுசெய்து புதிய கோரிக்கையைத் தொடங்குங்கள்.",
+        ),
+        (
+            GuestLanguage.TELUGU,
+            "మీ అభ్యర్థన హోటల్ బృందానికి పంపబడుతోంది. "
+            "మీకు వేరే ఏదైనా అవసరమైతే, దయచేసి కొత్త అభ్యర్థనను ప్రారంభించండి.",
+        ),
+        (
+            GuestLanguage.KANNADA,
+            "ನಿಮ್ಮ ವಿನಂತಿಯನ್ನು ಹೋಟೆಲ್ ತಂಡಕ್ಕೆ ಕಳುಹಿಸಲಾಗುತ್ತಿದೆ. "
+            "ಬೇರೆ ಏನಾದರೂ ಬೇಕಿದ್ದರೆ, ದಯವಿಟ್ಟು ಹೊಸ ವಿನಂತಿಯನ್ನು ಪ್ರಾರಂಭಿಸಿ.",
+        ),
+        (
+            GuestLanguage.MALAYALAM,
+            "നിങ്ങളുടെ അഭ്യർത്ഥന ഹോട്ടൽ ടീമിന് അയയ്ക്കുകയാണ്. "
+            "മറ്റെന്തെങ്കിലും ആവശ്യമുണ്ടെങ്കിൽ, ദയവായി പുതിയ അഭ്യർത്ഥന ആരംഭിക്കുക.",
+        ),
+        (
+            GuestLanguage.MARATHI,
+            "आपली विनंती हॉटेल टीमकडे पाठवली जात आहे. "
+            "आणखी काही हवे असल्यास, कृपया नवीन विनंती करा.",
+        ),
+        (
+            GuestLanguage.BENGALI,
+            "আপনার অনুরোধটি হোটেল টিমের কাছে পাঠানো হচ্ছে। "
+            "আর কিছু প্রয়োজন হলে, অনুগ্রহ করে নতুন অনুরোধ করুন।",
+        ),
+        (
+            GuestLanguage.GUJARATI,
+            "તમારી વિનંતી હોટેલ ટીમને મોકલવામાં આવી રહી છે. "
+            "બીજું કંઈ જરૂરી હોય, તો કૃપા કરીને નવી વિનંતી કરો.",
+        ),
+        (
+            GuestLanguage.PUNJABI,
+            "ਤੁਹਾਡੀ ਬੇਨਤੀ ਹੋਟਲ ਟੀਮ ਨੂੰ ਭੇਜੀ ਜਾ ਰਹੀ ਹੈ। "
+            "ਹੋਰ ਕੁਝ ਚਾਹੀਦਾ ਹੋਵੇ, ਤਾਂ ਕਿਰਪਾ ਕਰਕੇ ਨਵੀਂ ਬੇਨਤੀ ਕਰੋ।",
+        ),
+    ],
+)
+async def test_conversation_turn_processes_and_persists_confirmation(
+    guest_language,
+    confirmation_response,
+):
     conversation_id = uuid.uuid4()
     room_id = uuid.uuid4()
     raw_input_id = uuid.uuid4()
@@ -41,7 +104,7 @@ async def test_conversation_turn_processes_and_persists_confirmation():
         room_id=room_id,
         conversation_id=conversation_id,
         transcript="Yes, please",
-        guest_language=GuestLanguage.ENGLISH,
+        guest_language=guest_language,
         created_at=datetime.now(UTC),
     )
     turn = ConversationTurnResult(
@@ -49,7 +112,7 @@ async def test_conversation_turn_processes_and_persists_confirmation():
         tasks=[],
         assistant_response=AssistantResponse(
             text="Thank you. I will send that request.",
-            language=GuestLanguage.ENGLISH.value,
+            language=guest_language.value,
         ),
     )
     processing_result = ConversationTurnProcessingResult(
@@ -59,7 +122,7 @@ async def test_conversation_turn_processes_and_persists_confirmation():
     conversation = Conversation(
         id=conversation_id,
         room_id=room_id,
-        guest_language=GuestLanguage.ENGLISH,
+        guest_language=guest_language,
         status=ConversationStatus.ACTIVE,
     )
     audio = MagicMock()
@@ -124,20 +187,14 @@ async def test_conversation_turn_processes_and_persists_confirmation():
     save_turn_message.assert_called_once_with(
         db=db,
         conversation_id=conversation_id,
-        content=(
-            "Your request is being sent to the hotel team. "
-            "If you need anything else, please make a new request."
-        ),
+        content=confirmation_response,
         pending_tasks=[],
         pending_raw_input_id=None,
     )
     tts_service.generate_speech.assert_awaited_once_with(
         assistant_response=AssistantResponse(
-            text=(
-                "Your request is being sent to the hotel team. "
-                "If you need anything else, please make a new request."
-            ),
-            language=GuestLanguage.ENGLISH.value,
+            text=confirmation_response,
+            language=guest_language.value,
         ),
     )
     end_conversation.assert_called_once_with(
@@ -147,11 +204,7 @@ async def test_conversation_turn_processes_and_persists_confirmation():
     assert result.conversation_id == conversation_id
     assert result.conversation_ended
     assert result.turn.tasks == [task]
-    assert (
-        result.turn.assistant_response.text
-        == "Your request is being sent to the hotel team. "
-        "If you need anything else, please make a new request."
-    )
+    assert result.turn.assistant_response.text == confirmation_response
     assert base64.b64decode(result.audio.audio_base64) == b"wav audio"
     assert result.audio.content_type == "audio/wav"
     audio.close.assert_awaited_once()
