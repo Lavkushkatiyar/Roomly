@@ -22,8 +22,6 @@ class GnaniSTT:
         filename: str,
     ) -> TranscriptionResult:
         content_type, _ = mimetypes.guess_type(filename)
-        print("we are coming till here")
-
         response = await self.client.post(
             self.ENDPOINT,
             data={"language_code": language},
