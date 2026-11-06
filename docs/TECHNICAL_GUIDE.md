@@ -491,8 +491,15 @@ The current implementation serializes Gnani requests and includes retry handling
 - Frontend automated tests and browser end-to-end tests are not configured.
 - The inspected GitHub Actions workflow has a Python-version mismatch.
 - The inspected workflow does not perform automated deployment.
-- No Dockerfile or Docker Compose configuration is present in the tracked repository.
 - The Gnani request lock is process-local.
 - ROOMLY is a browser call simulator, not a PBX/SIP or hotel telephone-system integration.
 
 
+
+# 10. Docker Packaging
+
+ROOMLY includes a multi-stage backend image, a production frontend image served by Nginx, and a Docker Compose configuration.
+
+See the [Docker Guide](DOCKER.md) for environment configuration, build commands, service URLs, database migration instructions, and troubleshooting notes.
+
+The containers do not provision PostgreSQL or Ollama. They connect to the existing database and selected reasoning provider through environment configuration. Database migrations remain an explicit operator action.
