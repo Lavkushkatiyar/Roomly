@@ -32,7 +32,11 @@ function getReadyStatus(result) {
   return "awaiting_clarification";
 }
 
-export function useConversationTurn({ roomId, guestLanguage }) {
+export function useConversationTurn({
+  roomId,
+  guestLanguage,
+  onResponseFinished,
+}) {
   const [state, setState] = useState(INITIAL_STATE);
   const submittingRef = useRef(false);
   const conversationIdRef = useRef(null);
@@ -93,6 +97,9 @@ export function useConversationTurn({ roomId, guestLanguage }) {
         }
 
         setState((current) => ({ ...current, status: readyStatus }));
+        if (!result.conversation_ended) {
+          await onResponseFinished?.();
+        }
       } catch (error) {
         setState((current) => ({
           ...current,
@@ -106,7 +113,7 @@ export function useConversationTurn({ roomId, guestLanguage }) {
         submittingRef.current = false;
       }
     },
-    [guestLanguage, roomId],
+    [guestLanguage, onResponseFinished, roomId],
   );
 
   const playResponse = useCallback(async () => {
