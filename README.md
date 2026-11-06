@@ -151,6 +151,7 @@ ROOMLY is developed incrementally, with clear service boundaries and automated v
 | [Gnani Timbre TTS](docs/GNANI_TIMBRE_TTS.md) | Timbre integration, model configuration, voice selection, and audio output. |
 | [Reasoning Provider](docs/REASONING_PROVIDER.md) | Provider abstraction, Ollama, OpenRouter, and structured AI responses. |
 | [System Architecture](docs/SYSTEM_ARCHITECTURE.md) | Application layers, request lifecycle, data flow, and service boundaries. |
+| [Docker Guide](docs/DOCKER.md) | Build and run the frontend and backend containers with Docker Compose. |
 
 
 ## Project Scope
