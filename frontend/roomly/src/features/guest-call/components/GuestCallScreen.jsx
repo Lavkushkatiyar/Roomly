@@ -109,6 +109,12 @@ export function GuestCallScreen({ roomId, guestLanguage, greetOnEntry = false })
   }, [greetOnEntry, startConversationWithGreeting]);
 
   useEffect(() => {
+    if (ingestionStatus === "conversation_ended") {
+      conversationStartedRef.current = false;
+    }
+  }, [ingestionStatus]);
+
+  useEffect(() => {
     if (
       recorderStatus !== "recorded" ||
       !audioBlob ||
@@ -126,8 +132,10 @@ export function GuestCallScreen({ roomId, guestLanguage, greetOnEntry = false })
   ]);
 
   const toggleRecording = () => {
-    if (ingestionStatus === "conversation_ended") {
-      conversationStartedRef.current = false;
+    if (
+      ingestionStatus === "conversation_ended" &&
+      !conversationStartedRef.current
+    ) {
       void startConversationWithGreeting();
       return;
     }

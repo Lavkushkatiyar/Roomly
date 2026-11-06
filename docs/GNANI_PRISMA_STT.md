@@ -154,8 +154,10 @@ request, which can include queue wait, STT, reasoning and TTS.
 Requests made through the shared Gnani client are serialized within one
 backend process. A 429 response is retried up to three times, waiting 5, 15
 and 30 seconds by default; a numeric `Retry-After` header takes precedence.
-The same queue also serializes Timbre requests. This is process-local and does
-not coordinate multiple workers or application replicas.
+Transient 502, 503 and 504 gateway responses are retried up to twice, waiting
+1 and 2 seconds. The same queue also serializes Timbre requests. This is
+process-local and does not coordinate multiple workers or application
+replicas.
 
 The conversation API converts provider errors to a 502 response. The frontend
 surfaces a processing error rather than presenting a successful result when

@@ -171,36 +171,6 @@ export function useConversationTurn({
 
         setState((current) => ({ ...current, status: readyStatus }));
         if (!result.conversation_ended) {
-          const continuationController = createPlaybackController();
-          setState((current) => ({ ...current, status: "speaking" }));
-          try {
-            await playNaturalMessage(guestLanguage, "continuation", {
-              signal: continuationController.signal,
-            });
-          } catch (error) {
-            if (
-              !continuationController.signal.aborted &&
-              mountedRef.current
-            ) {
-              setState((current) => ({
-                ...current,
-                errorMessage:
-                  error instanceof Error
-                    ? `Continuation prompt failed: ${error.message}`
-                    : "Continuation prompt failed.",
-              }));
-            }
-          } finally {
-            playbackControllersRef.current.delete(continuationController);
-          }
-
-          if (
-            continuationController.signal.aborted ||
-            !mountedRef.current
-          ) {
-            return;
-          }
-          setState((current) => ({ ...current, status: readyStatus }));
           submittingRef.current = false;
           await onResponseFinished?.();
         }

@@ -211,8 +211,9 @@ are explicitly mapped to HTTP 502.
 
 Gnani calls pass through one shared, process-local async lock. A 429 triggers
 up to three retries with 5/15/30-second delays unless a numeric `Retry-After`
-header is provided. If several API workers or replicas are used, they do not
-share this in-memory lock.
+header is provided. Transient 502/503/504 gateway responses trigger up to two
+retries with 1/2-second delays. If several API workers or replicas are used,
+they do not share this in-memory lock.
 
 The browser coordinates its acknowledgement, answer, continuation and
 greeting audio with cancellation. A frontend timeout does not guarantee that
