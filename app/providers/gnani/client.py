@@ -24,6 +24,8 @@ class GnaniAPIError(Exception):
 class GnaniClient:
     BASE_URL = "https://api.vachana.ai"
     RATE_LIMIT_RETRY_DELAYS = (5, 15, 30)
+    GATEWAY_RETRY_DELAYS = (1, 2)
+    RETRYABLE_GATEWAY_STATUSES = frozenset({502, 503, 504})
 
     def __init__(
         self,
@@ -43,7 +45,7 @@ class GnaniClient:
         )
         self._request_lock = asyncio.Lock()
 
-    async def _send_with_rate_limit(
+    async def _send_with_retries(
         self,
         send_request: Callable[[], Awaitable[httpx.Response]],
     ) -> httpx.Response:
@@ -56,32 +58,52 @@ class GnaniClient:
                     queue_wait,
                 )
 
-            for attempt in range(len(self.RATE_LIMIT_RETRY_DELAYS) + 1):
+            rate_limit_attempt = 0
+            gateway_attempt = 0
+            while True:
                 response = await send_request()
-                if response.status_code != 429 or attempt == len(
+                if response.status_code == 429 and rate_limit_attempt < len(
                     self.RATE_LIMIT_RETRY_DELAYS
                 ):
-                    return response
+                    retry_after = response.headers.get("Retry-After")
+                    try:
+                        delay = (
+                            max(0.0, float(retry_after))
+                            if retry_after is not None
+                            else self.RATE_LIMIT_RETRY_DELAYS[rate_limit_attempt]
+                        )
+                    except ValueError:
+                        delay = self.RATE_LIMIT_RETRY_DELAYS[rate_limit_attempt]
 
-                retry_after = response.headers.get("Retry-After")
-                try:
-                    delay = (
-                        max(0.0, float(retry_after))
-                        if retry_after is not None
-                        else self.RATE_LIMIT_RETRY_DELAYS[attempt]
+                    rate_limit_attempt += 1
+                    logger.warning(
+                        "Gnani rate limit reached; retrying in %.1f seconds "
+                        "(retry %d/%d).",
+                        delay,
+                        rate_limit_attempt,
+                        len(self.RATE_LIMIT_RETRY_DELAYS),
                     )
-                except ValueError:
-                    delay = self.RATE_LIMIT_RETRY_DELAYS[attempt]
+                    await asyncio.sleep(delay)
+                    continue
 
-                logger.warning(
-                    "Gnani rate limit reached; retrying in %.1f seconds (retry %d/%d).",
-                    delay,
-                    attempt + 1,
-                    len(self.RATE_LIMIT_RETRY_DELAYS),
-                )
-                await asyncio.sleep(delay)
+                if (
+                    response.status_code in self.RETRYABLE_GATEWAY_STATUSES
+                    and gateway_attempt < len(self.GATEWAY_RETRY_DELAYS)
+                ):
+                    delay = self.GATEWAY_RETRY_DELAYS[gateway_attempt]
+                    gateway_attempt += 1
+                    logger.warning(
+                        "Gnani gateway error %d; retrying in %.1f seconds "
+                        "(retry %d/%d).",
+                        response.status_code,
+                        delay,
+                        gateway_attempt,
+                        len(self.GATEWAY_RETRY_DELAYS),
+                    )
+                    await asyncio.sleep(delay)
+                    continue
 
-            raise RuntimeError("Gnani request retry loop exited unexpectedly.")
+                return response
 
     async def post(
         self,
@@ -91,7 +113,7 @@ class GnaniClient:
         files: Mapping[str, tuple[str, bytes, str]],
     ) -> dict[str, Any]:
         try:
-            response = await self._send_with_rate_limit(
+            response = await self._send_with_retries(
                 lambda: self._http.post(
                     path,
                     data=data,
@@ -129,7 +151,7 @@ class GnaniClient:
         *,
         json: Mapping[str, Any],
     ) -> httpx.Response:
-        response = await self._send_with_rate_limit(
+        response = await self._send_with_retries(
             lambda: self._http.post(path, json=json),
         )
 

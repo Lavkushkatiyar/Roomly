@@ -100,6 +100,49 @@ async def test_post_retries_rate_limited_request():
     assert request_count == 2
 
 
+@pytest.mark.asyncio
+async def test_post_retries_gateway_timeout(monkeypatch):
+    request_count = 0
+    monkeypatch.setattr(GnaniClient, "GATEWAY_RETRY_DELAYS", (0, 0))
+
+    async def handler(request):
+        nonlocal request_count
+        request_count += 1
+        if request_count == 1:
+            return httpx.Response(504, request=request)
+        return httpx.Response(200, json={"success": True})
+
+    async with GnaniClient(
+        "test-key",
+        transport=httpx.MockTransport(handler),
+    ) as client:
+        response = await client.post("/stt/v3", data={}, files={})
+
+    assert response == {"success": True}
+    assert request_count == 2
+
+
+@pytest.mark.asyncio
+async def test_post_stops_retrying_after_gateway_retry_limit(monkeypatch):
+    request_count = 0
+    monkeypatch.setattr(GnaniClient, "GATEWAY_RETRY_DELAYS", (0, 0))
+
+    async def handler(request):
+        nonlocal request_count
+        request_count += 1
+        return httpx.Response(504, request=request)
+
+    async with GnaniClient(
+        "test-key",
+        transport=httpx.MockTransport(handler),
+    ) as client:
+        with pytest.raises(GnaniAPIError) as error:
+            await client.post("/stt/v3", data={}, files={})
+
+    assert error.value.status_code == 504
+    assert request_count == 3
+
+
 def test_post_raises_api_error_for_http_status():
     async def handler(request):
         return httpx.Response(401, request=request)
