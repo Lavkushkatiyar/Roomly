@@ -184,19 +184,38 @@ async def test_process_conversation_turn_makes_one_reasoning_call():
 
 
 @pytest.mark.asyncio
-async def test_closing_utterance_ends_conversation():
+@pytest.mark.parametrize(
+    ("intent", "transcript", "conversation_ended"),
+    [
+        (
+            ConversationIntent.END_CONVERSATION,
+            "धन्यवाद, अब कोई अनुरोध नहीं है",
+            True,
+        ),
+        (
+            ConversationIntent.GENERAL_CONVERSATION,
+            "Hello, how are you?",
+            False,
+        ),
+    ],
+)
+async def test_conversation_end_intent_controls_closing(
+    intent,
+    transcript,
+    conversation_ended,
+):
     conversation_id = uuid.uuid4()
     room_id = uuid.uuid4()
     raw_input = RawInputResponse(
         id=uuid.uuid4(),
         room_id=room_id,
         conversation_id=conversation_id,
-        transcript="That's all, thank you.",
+        transcript=transcript,
         guest_language=GuestLanguage.ENGLISH,
         created_at=datetime.now(UTC),
     )
     turn = ConversationTurnResult(
-        intent=ConversationIntent.GENERAL_CONVERSATION,
+        intent=intent,
         tasks=[],
         assistant_response=AssistantResponse(
             text="You're welcome. Goodbye!",
@@ -262,10 +281,13 @@ async def test_closing_utterance_ends_conversation():
             tts_provider=MagicMock(),
         )
 
-    end_conversation.assert_called_once_with(
-        db=db,
-        conversation_id=conversation_id,
-    )
+    if conversation_ended:
+        end_conversation.assert_called_once_with(
+            db=db,
+            conversation_id=conversation_id,
+        )
+    else:
+        end_conversation.assert_not_called()
     save_turn_message.assert_called_once_with(
         db=db,
         conversation_id=conversation_id,
@@ -273,4 +295,4 @@ async def test_closing_utterance_ends_conversation():
         pending_tasks=[],
         pending_raw_input_id=None,
     )
-    assert result.conversation_ended
+    assert result.conversation_ended is conversation_ended
