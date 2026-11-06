@@ -7,6 +7,7 @@ import { IngestionResults } from "./IngestionResults";
 import { VoiceControl } from "./VoiceControl";
 import { useAudioRecorder } from "../hooks/useAudioRecorder";
 import { useConversationTurn } from "../hooks/useConversationTurn";
+import { playGreetingChime } from "../utils/greetingChime";
 import { playNaturalMessage } from "../utils/naturalSpeech";
 import "./guest-call.css";
 
@@ -51,6 +52,19 @@ export function GuestCallScreen({ roomId, guestLanguage, greetOnEntry = false })
     greetingControllerRef.current = controller;
     setIsGreeting(true);
     setGreetingError(null);
+
+    try {
+      await playGreetingChime({ signal: controller.signal });
+      if (controller.signal.aborted) {
+        return;
+      }
+    } catch (error) {
+      if (controller.signal.aborted) {
+        return;
+      }
+
+      console.warn("Could not play the greeting chime.", error);
+    }
 
     try {
       await playNaturalMessage(guestLanguage, "greeting", {
