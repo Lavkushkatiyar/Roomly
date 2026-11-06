@@ -15,12 +15,10 @@ logger = logging.getLogger(__name__)
 app = FastAPI(lifespan=lifespan, title=settings.app_name, version=settings.app_version)
 app.include_router(api_router)
 
-origins = [
-    "http://localhost:5173",
-]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

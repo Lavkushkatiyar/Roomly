@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     OLLAMA_BASE_URL: str = "http://localhost:11434"
     OPENROUTER_API_KEY: str = "your-api-key"
     OPENROUTER_BASE_URL: str = "https://openrouter.ai/api/v1"
+    CORS_ORIGINS: list[str] = ["http://localhost:5173"]
 
     model_config = SettingsConfigDict(
         env_file=".env",
