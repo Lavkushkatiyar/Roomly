@@ -6,6 +6,8 @@ export function VoiceControl({
 }) {
   const isRecording = status === "recording";
   const isBusy =
+    status === "greeting" ||
+    status === "acknowledging" ||
     status === "requesting" ||
     status === "processing" ||
     status === "uploading" ||

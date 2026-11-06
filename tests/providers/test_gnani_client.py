@@ -38,6 +38,68 @@ def test_post_sends_authenticated_multipart_request():
     assert b"audio data" in request.content
 
 
+@pytest.mark.asyncio
+async def test_requests_to_gnani_are_serialized():
+    first_request_started = asyncio.Event()
+    release_first_request = asyncio.Event()
+    active_requests = 0
+    max_active_requests = 0
+    request_count = 0
+
+    async def handler(request):
+        nonlocal active_requests, max_active_requests, request_count
+        request_count += 1
+        active_requests += 1
+        max_active_requests = max(max_active_requests, active_requests)
+        if request_count == 1:
+            first_request_started.set()
+            await release_first_request.wait()
+        active_requests -= 1
+        return httpx.Response(200, json={"success": True})
+
+    async with GnaniClient(
+        "test-key",
+        transport=httpx.MockTransport(handler),
+    ) as client:
+        first = asyncio.create_task(client.post("/first", data={}, files={}))
+        await first_request_started.wait()
+        second = asyncio.create_task(client.post("/second", data={}, files={}))
+
+        await asyncio.sleep(0)
+        assert request_count == 1
+
+        release_first_request.set()
+        await asyncio.gather(first, second)
+
+    assert max_active_requests == 1
+    assert request_count == 2
+
+
+@pytest.mark.asyncio
+async def test_post_retries_rate_limited_request():
+    request_count = 0
+
+    async def handler(request):
+        nonlocal request_count
+        request_count += 1
+        if request_count == 1:
+            return httpx.Response(
+                429,
+                headers={"Retry-After": "0"},
+                json={"detail": "Only 1 active request is allowed at a time."},
+            )
+        return httpx.Response(200, json={"success": True})
+
+    async with GnaniClient(
+        "test-key",
+        transport=httpx.MockTransport(handler),
+    ) as client:
+        response = await client.post("/stt/v3", data={}, files={})
+
+    assert response == {"success": True}
+    assert request_count == 2
+
+
 def test_post_raises_api_error_for_http_status():
     async def handler(request):
         return httpx.Response(401, request=request)

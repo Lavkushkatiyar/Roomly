@@ -14,10 +14,7 @@ from app.db.models.enums import (
     RequestPriority,
 )
 from app.schemas.task_extraction import ProposedServiceRequest
-from app.services.conversation_services import (
-    ConversationServices,
-    is_conversation_closing_utterance,
-)
+from app.services.conversation_services import ConversationServices
 
 
 @pytest.mark.parametrize(
@@ -455,29 +452,3 @@ def test_get_conversation_context_includes_structured_pending_tasks():
     assert len(result) == 1
     assert "Pending service requests" in result[0]["content"]
     assert '"staff_summary":"Deliver two towels"' in result[0]["content"]
-
-
-@pytest.mark.parametrize(
-    "transcript",
-    [
-        "That's all, thank you.",
-        "I'm done, thanks!",
-        "Thank you, that's it.",
-        "It's done, thank you.",
-        "Goodbye.",
-    ],
-)
-def test_is_conversation_closing_utterance(transcript):
-    assert is_conversation_closing_utterance(transcript)
-
-
-@pytest.mark.parametrize(
-    "transcript",
-    [
-        "Thanks, can you bring two towels?",
-        "Thank you for bringing the towels.",
-        "I am done with the towels, please bring water.",
-    ],
-)
-def test_is_not_conversation_closing_utterance(transcript):
-    assert not is_conversation_closing_utterance(transcript)

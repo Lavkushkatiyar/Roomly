@@ -49,3 +49,7 @@ export function saveGuestSession(session) {
 
   localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
 }
+
+export function clearGuestSession() {
+  localStorage.removeItem(STORAGE_KEY);
+}

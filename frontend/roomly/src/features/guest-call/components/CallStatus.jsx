@@ -1,10 +1,12 @@
 const STATUS_LABELS = {
   idle: "Tap to start your call",
+  greeting: "Welcome to ROOMLY",
   requesting: "Requesting microphone access",
   recording: "Listening · Tap to end your call",
   processing: "Finishing your recording",
   recorded: "Recording complete",
   uploading: "Sending your recording",
+  acknowledging: "Just a moment, please",
   speaking: "Roomly is speaking",
   awaiting_clarification: "Tap the microphone to clarify your request",
   awaiting_confirmation: "Tap the microphone and say yes or no",

@@ -1,5 +1,4 @@
 import json
-import re
 import uuid
 from datetime import UTC, datetime
 
@@ -15,64 +14,6 @@ from app.db.models.raw_input import RawInput
 from app.schemas.task_extraction import ProposedServiceRequest
 
 PENDING_TASKS_MARKER = "\n[roomly-pending-tasks:"
-CLOSING_UTTERANCES = {
-    "all done",
-    "bye",
-    "done thanks",
-    "done thank you",
-    "goodbye",
-    "i am done",
-    "i am done thanks",
-    "i am done thank you",
-    "it is done",
-    "it is done thanks",
-    "it is done thank you",
-    "im done",
-    "im done thanks",
-    "im done thank you",
-    "no more",
-    "no more thanks",
-    "no more thank you",
-    "nothing else",
-    "nothing else thanks",
-    "nothing else thank you",
-    "thank you",
-    "thank you that is everything",
-    "thank you that is it",
-    "thank you that is all",
-    "thank you we are done",
-    "thanks",
-    "thanks that is all",
-    "thanks that is everything",
-    "thanks that is it",
-    "thanks we are done",
-    "that is all",
-    "that is all thank you",
-    "that is all thanks",
-    "that is everything",
-    "that is everything thank you",
-    "that is everything thanks",
-    "that is it",
-    "that is it thank you",
-    "that is it thanks",
-    "we are done",
-    "we are done thanks",
-    "we are done thank you",
-    "we are finished",
-    "we are finished thanks",
-    "we are finished thank you",
-}
-
-
-def is_conversation_closing_utterance(transcript: str) -> bool:
-    normalized = transcript.lower()
-    normalized = re.sub(r"\bthat's\b", "that is", normalized)
-    normalized = re.sub(r"\bwe're\b", "we are", normalized)
-    normalized = re.sub(r"\bi'm\b", "i am", normalized)
-    normalized = re.sub(r"\bit's\b", "it is", normalized)
-    normalized = re.sub(r"[^\w\s]", "", normalized)
-    normalized = " ".join(normalized.split())
-    return normalized in CLOSING_UTTERANCES
 
 
 class ConversationServices:

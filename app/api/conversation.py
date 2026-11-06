@@ -23,21 +23,58 @@ from app.providers.gnani.stt import GnaniSTT
 from app.providers.gnani.text_to_speech import GnaniTTS
 from app.providers.reasoning.llm_factory import get_reasoning_provider
 from app.providers.reasoning.ollama import OllamaProvider
+from app.schemas.assistant import AssistantResponse
 from app.schemas.conversation import ConversationCreate, ConversationResponse
 from app.schemas.conversation_turn import (
     ConversationIntent,
     ConversationTurnAudio,
     ConversationTurnResponse,
 )
-from app.services.conversation_services import (
-    ConversationServices,
-    is_conversation_closing_utterance,
-)
+from app.services.conversation_services import ConversationServices
 from app.services.service_requests import ServiceRequestServices
 from app.services.tts_service import TTSService
 from app.services.voice_ingestion import VoiceIngestionServices
 
 logger = logging.getLogger(__name__)
+
+CONFIRMATION_RESPONSE = (
+    "Your request is being sent to the hotel team. "
+    "If you need anything else, please make a new request."
+)
+
+CONVERSATION_CLOSING_RESPONSES = {
+    GuestLanguage.ENGLISH: (
+        "<excited> It was a pleasure assisting you. Have a wonderful day!"
+    ),
+    GuestLanguage.Hindi: "आपकी सहायता करके अच्छा लगा। आपका दिन शुभ हो!",
+    GuestLanguage.HINGLISH: "आपकी मदद करके अच्छा लगा। आपका दिन शुभ हो!",
+    GuestLanguage.TAMIL: "உங்களுக்கு உதவியதில் மகிழ்ச்சி. இனிய நாளாக அமையட்டும்!",
+    GuestLanguage.TELUGU: "మీకు సహాయం చేయడం ఆనందంగా ఉంది. మీ రోజు శుభంగా ఉండాలి!",
+    GuestLanguage.KANNADA: "ನಿಮಗೆ ಸಹಾಯ ಮಾಡಲು ಸಂತೋಷವಾಯಿತು. ನಿಮ್ಮ ದಿನ ಶುಭವಾಗಿರಲಿ!",
+    GuestLanguage.MALAYALAM: "നിങ്ങളെ സഹായിച്ചതിൽ സന്തോഷം. നിങ്ങളുടെ ദിവസം ശുഭകരമാകട്ടെ!",
+    GuestLanguage.MARATHI: "आपली मदत करताना आनंद झाला. आपला दिवस शुभ जावो!",
+    GuestLanguage.BENGALI: "আপনাকে সাহায্য করতে পেরে ভালো লাগল। আপনার দিনটি শুভ হোক!",
+    GuestLanguage.GUJARATI: "આપની મદદ કરીને આનંદ થયો. આપનો દિવસ શુભ રહે!",
+    GuestLanguage.PUNJABI: "ਤੁਹਾਡੀ ਮਦਦ ਕਰਕੇ ਖੁਸ਼ੀ ਹੋਈ। ਤੁਹਾਡਾ ਦਿਨ ਚੰਗਾ ਲੰਘੇ!",
+}
+
+PENDING_CONFIRMATION_RESPONSES = {
+    GuestLanguage.ENGLISH: (
+        "I still have your request awaiting confirmation. Would you like me to send it?"
+    ),
+    GuestLanguage.Hindi: "आपका अनुरोध अभी पुष्टि के लिए बाकी है। क्या मैं इसे भेज दूँ?",
+    GuestLanguage.HINGLISH: (
+        "Aapka request abhi confirmation ke liye pending hai. Kya main ise bhej doon?"
+    ),
+    GuestLanguage.TAMIL: "உங்கள் கோரிக்கை இன்னும் உறுதிப்படுத்தப்படவில்லை. அதை அனுப்பவா?",
+    GuestLanguage.TELUGU: "మీ అభ్యర్థన ఇంకా నిర్ధారణ కోసం వేచి ఉంది. దాన్ని పంపించనా?",
+    GuestLanguage.KANNADA: "ನಿಮ್ಮ ವಿನಂತಿಗೆ ಇನ್ನೂ ದೃಢೀಕರಣ ಬೇಕಿದೆ. ಅದನ್ನು ಕಳುಹಿಸಬೇಕೇ?",
+    GuestLanguage.MALAYALAM: "നിങ്ങളുടെ അഭ്യർത്ഥനയ്ക്ക് ഇനിയും സ്ഥിരീകരണം ആവശ്യമാണ്. അത് അയയ്ക്കട്ടേ?",
+    GuestLanguage.MARATHI: "आपल्या विनंतीला अजून पुष्टी आवश्यक आहे. ती पाठवू का?",
+    GuestLanguage.BENGALI: "আপনার অনুরোধটি এখনও নিশ্চিত করা হয়নি। এটি কি পাঠাব?",
+    GuestLanguage.GUJARATI: "તમારી વિનંતીની હજી પુષ્ટિ બાકી છે. શું હું તેને મોકલું?",
+    GuestLanguage.PUNJABI: "ਤੁਹਾਡੀ ਬੇਨਤੀ ਦੀ ਹਾਲੇ ਪੁਸ਼ਟੀ ਬਾਕੀ ਹੈ। ਕੀ ਮੈਂ ਇਸਨੂੰ ਭੇਜਾਂ?",
+}
 
 router = APIRouter(
     prefix="/conversations",
@@ -181,19 +218,40 @@ async def _process_audio_turn(
         conversation_id=conversation.id,
     )
     turn = result.turn
+    if turn.intent == ConversationIntent.END_CONVERSATION and pending_tasks:
+        turn = turn.model_copy(
+            update={
+                "intent": ConversationIntent.UNCLEAR,
+                "tasks": [],
+                "assistant_response": AssistantResponse(
+                    text=PENDING_CONFIRMATION_RESPONSES[conversation.guest_language],
+                    language=conversation.guest_language.value,
+                ),
+            }
+        )
+        result = result.model_copy(update={"turn": turn})
+
     conversation_ended = (
-        turn.intent == ConversationIntent.GENERAL_CONVERSATION
-        and is_conversation_closing_utterance(result.raw_input.transcript)
+        turn.intent == ConversationIntent.END_CONVERSATION and not turn.tasks
     )
     confirmed_raw_input_id = None
 
     if turn.intent == ConversationIntent.CONFIRMATION:
         if pending_tasks:
             turn = turn.model_copy(update={"tasks": pending_tasks})
+            turn = turn.model_copy(
+                update={
+                    "assistant_response": AssistantResponse(
+                        text=CONFIRMATION_RESPONSE,
+                        language=conversation.guest_language.value,
+                    )
+                }
+            )
             result = result.model_copy(update={"turn": turn})
             confirmed_raw_input_id = pending_raw_input_id
             pending_tasks = []
             pending_raw_input_id = None
+            conversation_ended = True
         else:
             turn = turn.model_copy(
                 update={
@@ -203,6 +261,16 @@ async def _process_audio_turn(
             )
             result = result.model_copy(update={"turn": turn})
             pending_raw_input_id = None
+    elif conversation_ended:
+        turn = turn.model_copy(
+            update={
+                "assistant_response": AssistantResponse(
+                    text=CONVERSATION_CLOSING_RESPONSES[conversation.guest_language],
+                    language=conversation.guest_language.value,
+                )
+            }
+        )
+        result = result.model_copy(update={"turn": turn})
     elif turn.intent == ConversationIntent.REJECTION:
         pending_tasks = []
         pending_raw_input_id = None

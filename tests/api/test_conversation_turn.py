@@ -98,6 +98,10 @@ async def test_conversation_turn_processes_and_persists_confirmation():
         patch(
             "app.api.conversation.ConversationServices.save_turn_message",
         ) as save_turn_message,
+        patch(
+            "app.api.conversation.ConversationServices.end_conversation",
+            return_value=conversation,
+        ) as end_conversation,
     ):
         from app.api.conversation import _process_audio_turn
 
@@ -120,15 +124,34 @@ async def test_conversation_turn_processes_and_persists_confirmation():
     save_turn_message.assert_called_once_with(
         db=db,
         conversation_id=conversation_id,
-        content=turn.assistant_response.text,
+        content=(
+            "Your request is being sent to the hotel team. "
+            "If you need anything else, please make a new request."
+        ),
         pending_tasks=[],
         pending_raw_input_id=None,
     )
     tts_service.generate_speech.assert_awaited_once_with(
-        assistant_response=turn.assistant_response,
+        assistant_response=AssistantResponse(
+            text=(
+                "Your request is being sent to the hotel team. "
+                "If you need anything else, please make a new request."
+            ),
+            language=GuestLanguage.ENGLISH.value,
+        ),
+    )
+    end_conversation.assert_called_once_with(
+        db=db,
+        conversation_id=conversation_id,
     )
     assert result.conversation_id == conversation_id
+    assert result.conversation_ended
     assert result.turn.tasks == [task]
+    assert (
+        result.turn.assistant_response.text
+        == "Your request is being sent to the hotel team. "
+        "If you need anything else, please make a new request."
+    )
     assert base64.b64decode(result.audio.audio_base64) == b"wav audio"
     assert result.audio.content_type == "audio/wav"
     audio.close.assert_awaited_once()
@@ -184,19 +207,94 @@ async def test_process_conversation_turn_makes_one_reasoning_call():
 
 
 @pytest.mark.asyncio
-async def test_closing_utterance_ends_conversation():
+@pytest.mark.parametrize(
+    (
+        "intent",
+        "transcript",
+        "guest_language",
+        "has_pending_proposal",
+        "expected_intent",
+        "conversation_ended",
+        "response_text",
+    ),
+    [
+        (
+            ConversationIntent.END_CONVERSATION,
+            "धन्यवाद, अब कोई अनुरोध नहीं है",
+            GuestLanguage.ENGLISH,
+            False,
+            ConversationIntent.END_CONVERSATION,
+            True,
+            "<excited> It was a pleasure assisting you. Have a wonderful day!",
+        ),
+        (
+            ConversationIntent.END_CONVERSATION,
+            "धन्यवाद, अब कोई अनुरोध नहीं है",
+            GuestLanguage.Hindi,
+            False,
+            ConversationIntent.END_CONVERSATION,
+            True,
+            "आपकी सहायता करके अच्छा लगा। आपका दिन शुभ हो!",
+        ),
+        (
+            ConversationIntent.END_CONVERSATION,
+            "Yes, thank you, goodbye",
+            GuestLanguage.ENGLISH,
+            True,
+            ConversationIntent.UNCLEAR,
+            False,
+            (
+                "I still have your request awaiting confirmation. "
+                "Would you like me to send it?"
+            ),
+        ),
+        (
+            ConversationIntent.GENERAL_CONVERSATION,
+            "Hello, how are you?",
+            GuestLanguage.ENGLISH,
+            False,
+            ConversationIntent.GENERAL_CONVERSATION,
+            False,
+            "You're welcome. Goodbye!",
+        ),
+        (
+            ConversationIntent.CONFIRMATION,
+            "Yes",
+            GuestLanguage.ENGLISH,
+            False,
+            ConversationIntent.UNCLEAR,
+            False,
+            "You're welcome. Goodbye!",
+        ),
+    ],
+)
+async def test_conversation_end_intent_controls_closing(
+    intent,
+    transcript,
+    guest_language,
+    has_pending_proposal,
+    expected_intent,
+    conversation_ended,
+    response_text,
+):
     conversation_id = uuid.uuid4()
     room_id = uuid.uuid4()
     raw_input = RawInputResponse(
         id=uuid.uuid4(),
         room_id=room_id,
         conversation_id=conversation_id,
-        transcript="That's all, thank you.",
-        guest_language=GuestLanguage.ENGLISH,
+        transcript=transcript,
+        guest_language=guest_language,
         created_at=datetime.now(UTC),
     )
+    pending_raw_input_id = uuid.uuid4()
+    pending_task = ProposedServiceRequest(
+        category=RequestCategory.HOUSEKEEPING,
+        staff_summary="Deliver two towels",
+        priority=RequestPriority.MEDIUM,
+    )
     turn = ConversationTurnResult(
-        intent=ConversationIntent.GENERAL_CONVERSATION,
+        intent=intent,
         tasks=[],
         assistant_response=AssistantResponse(
             text="You're welcome. Goodbye!",
@@ -210,7 +308,7 @@ async def test_closing_utterance_ends_conversation():
     conversation = Conversation(
         id=conversation_id,
         room_id=room_id,
-        guest_language=GuestLanguage.ENGLISH,
+        guest_language=guest_language,
         status=ConversationStatus.ACTIVE,
     )
     audio = MagicMock()
@@ -237,7 +335,11 @@ async def test_closing_utterance_ends_conversation():
         ),
         patch(
             "app.api.conversation.ConversationServices.get_pending_proposal",
-            return_value=(None, []),
+            return_value=(
+                (pending_raw_input_id, [pending_task])
+                if has_pending_proposal
+                else (None, [])
+            ),
         ),
         patch(
             "app.api.conversation.ConversationServices.save_turn_message",
@@ -250,6 +352,9 @@ async def test_closing_utterance_ends_conversation():
             "app.api.conversation.TTSService",
             return_value=tts_service,
         ),
+        patch(
+            "app.api.conversation.ServiceRequestServices.create_service_requests",
+        ) as create_requests,
     ):
         from app.api.conversation import _process_audio_turn
 
@@ -262,15 +367,30 @@ async def test_closing_utterance_ends_conversation():
             tts_provider=MagicMock(),
         )
 
-    end_conversation.assert_called_once_with(
-        db=db,
-        conversation_id=conversation_id,
-    )
+    if conversation_ended:
+        end_conversation.assert_called_once_with(
+            db=db,
+            conversation_id=conversation_id,
+        )
+    else:
+        end_conversation.assert_not_called()
     save_turn_message.assert_called_once_with(
         db=db,
         conversation_id=conversation_id,
-        content=turn.assistant_response.text,
-        pending_tasks=[],
-        pending_raw_input_id=None,
+        content=response_text,
+        pending_tasks=[pending_task] if has_pending_proposal else [],
+        pending_raw_input_id=pending_raw_input_id if has_pending_proposal else None,
     )
-    assert result.conversation_ended
+    assert result.conversation_ended is conversation_ended
+    assert result.turn.intent == expected_intent
+    if expected_intent == ConversationIntent.END_CONVERSATION:
+        assert result.turn.assistant_response == AssistantResponse(
+            text=response_text,
+            language=guest_language.value,
+        )
+    if has_pending_proposal:
+        create_requests.assert_not_called()
+        assert result.turn.assistant_response == AssistantResponse(
+            text=response_text,
+            language=guest_language.value,
+        )

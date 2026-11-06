@@ -1,4 +1,4 @@
-export function GuestHeader({ roomNumber }) {
+export function GuestHeader({ roomNumber, onLogOut }) {
   return (
     <header className="guest-header">
       <a className="guest-header__brand" href="/" aria-label="Roomly home">
@@ -36,7 +36,7 @@ export function GuestHeader({ roomNumber }) {
         ) : (
           <span className="guest-header__descriptor">Guest access</span>
         )}
-        <span className="guest-header__profile" role="img" aria-label="Guest profile">
+        <span className="guest-header__profile" aria-hidden="true">
           <svg aria-hidden="true" viewBox="0 0 24 24" fill="none">
             <circle
               cx="12"
@@ -53,6 +53,15 @@ export function GuestHeader({ roomNumber }) {
             />
           </svg>
         </span>
+        {roomNumber && (
+          <button
+            className="guest-header__logout"
+            onClick={onLogOut}
+            type="button"
+          >
+            Log out
+          </button>
+        )}
       </div>
     </header>
   );
