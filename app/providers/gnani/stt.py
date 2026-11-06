@@ -11,6 +11,7 @@ from app.schemas.providers.gnani import (
 
 class GnaniSTT:
     ENDPOINT = "/stt/v3"
+    LANGUAGE_CODE_MAPPING = {"hi-en": "hi-IN"}
 
     def __init__(self, client: GnaniClient) -> None:
         self.client = client
@@ -22,9 +23,10 @@ class GnaniSTT:
         filename: str,
     ) -> TranscriptionResult:
         content_type, _ = mimetypes.guess_type(filename)
+        provider_language = self.LANGUAGE_CODE_MAPPING.get(language, language)
         response = await self.client.post(
             self.ENDPOINT,
-            data={"language_code": language},
+            data={"language_code": provider_language},
             files={
                 "audio_file": (
                     filename,

@@ -56,6 +56,37 @@ async def test_transcribe_sends_correct_multipart_request():
 
 @pytest.mark.asyncio
 @respx.mock
+async def test_hinglish_uses_supported_hindi_code_for_stt():
+    route = respx.post("https://api.vachana.ai/stt/v3").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "success": True,
+                "request_id": "test-request",
+                "transcript": "Room service chahiye",
+                "model": "prisma-v2.5",
+                "processing_time": 0.34,
+                "end_to_end_latency": 0.37,
+                "output": {"literal": "Room service chahiye"},
+            },
+        )
+    )
+
+    async with GnaniClient(api_key_id="test-key") as client:
+        stt = GnaniSTT(client)
+        result = await stt.transcribe(
+            audio=b"fake-audio-content",
+            language="hi-en",
+            filename="test.wav",
+        )
+
+    assert route.called
+    assert b'name="language_code"\r\n\r\nhi-IN' in route.calls.last.request.content
+    assert result.text == "Room service chahiye"
+
+
+@pytest.mark.asyncio
+@respx.mock
 async def test_transcribe_rejects_malformed_response():
     respx.post("https://api.vachana.ai/stt/v3").mock(
         return_value=httpx.Response(
