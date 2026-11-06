@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
 import { AudioWaveform } from "./AudioWaveform";
 import { CallStatus } from "./CallStatus";
@@ -17,6 +17,10 @@ export function GuestCallScreen({ roomId, guestLanguage }) {
     startRecording,
     stopRecording,
   } = useAudioRecorder();
+  const startListeningAfterReply = useCallback(
+    () => startRecording(),
+    [startRecording],
+  );
   const {
     status: ingestionStatus,
     errorMessage: ingestionError,
@@ -24,7 +28,11 @@ export function GuestCallScreen({ roomId, guestLanguage }) {
     speechBlob,
     submitRecording,
     playResponse,
-  } = useConversationTurn({ roomId, guestLanguage });
+  } = useConversationTurn({
+    roomId,
+    guestLanguage,
+    onResponseFinished: startListeningAfterReply,
+  });
   const submittedBlobRef = useRef(null);
 
   useEffect(() => {
