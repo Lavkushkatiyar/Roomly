@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     environment: str = "development"
     DATABASE_URL: str = "postgres"
     GNANI_API_KEY_ID: str = "yourAPI"
-    model: str = "timbre-v2.5"
+    model: str = "timbre-v3.0"
     REASONING_PROVIDER: str = "ollama"
     REASONING_MODEL: str = "qwen3:8b"
     OLLAMA_BASE_URL: str = "http://localhost:11434"
