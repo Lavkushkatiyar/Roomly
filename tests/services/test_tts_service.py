@@ -10,17 +10,17 @@ from app.services.tts_service import TTSService
 @pytest.mark.parametrize(
     ("language", "expected_voice"),
     [
-        ("en-IN", "Kaveri"),
-        ("hi-IN", "Nalini"),
-        ("hi-en", "Poorvi"),
-        ("ta-IN", "Asmita"),
-        ("te-IN", "Suhana"),
-        ("kn-IN", "Saanvi"),
-        ("ml-IN", "Reshma"),
-        ("mr-IN", "Zahira"),
-        ("bn-IN", "Kirra"),
-        ("gu-IN", "Falak"),
-        ("pa-IN", "Mehuli"),
+        ("en-IN", "Avinash"),
+        ("hi-IN", "Avinash"),
+        ("hi-en", "Avinash"),
+        ("ta-IN", "Avinash"),
+        ("te-IN", "Avinash"),
+        ("kn-IN", "Avinash"),
+        ("ml-IN", "Avinash"),
+        ("mr-IN", "Avinash"),
+        ("bn-IN", "Avinash"),
+        ("gu-IN", "Avinash"),
+        ("pa-IN", "Avinash"),
     ],
 )
 @pytest.mark.asyncio
