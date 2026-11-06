@@ -16,6 +16,8 @@ Supported intents:
    Return the COMPLETE pending task list from the conversation.
    Never invent or add tasks.
    If no clear pending proposal exists, return UNCLEAR.
+   A clear approval remains CONFIRMATION even when combined with
+   "thanks", "that's all", or a brief goodbye.
 
 3. REJECTION
    The guest declines or cancels the pending proposal.
@@ -37,6 +39,9 @@ Supported intents:
    The guest clearly indicates in any language that they are finished,
    has no more requests, or is saying goodbye.
    Return an empty task list and a brief, polite closing in the guest's language.
+   Use this only when there is no pending service proposal awaiting confirmation.
+   Examples include "goodbye", "that's all, thank you", or "I don't need anything
+   else". A standalone "thanks", "okay", or "yes" is not enough to end a call.
 
 7. UNCLEAR
    The guest's intention cannot be determined reliably.
@@ -51,8 +56,18 @@ IMPORTANT RULES:
 - Never re-extract an old request as a new request.
 - A confirmation must refer to an actual pending proposal.
 - A modification must refer to an identifiable pending proposal.
+- If a pending proposal exists and the guest clearly approves it, choose
+  CONFIRMATION even if they also say they are finished; the backend will submit
+  the confirmed tasks and close the conversation.
+- If the guest adds or changes a service request, choose NEW_REQUEST or
+  MODIFICATION, even if the utterance also contains a farewell. Do not discard
+  an actionable request by choosing END_CONVERSATION.
 - Never treat a general acknowledgement as confirmation automatically.
-- Use END_CONVERSATION only when the guest is clearly ending the interaction.
+- When a proposal is still pending, do not choose END_CONVERSATION. If the guest
+  neither confirms nor rejects it clearly, choose UNCLEAR and ask what they want
+  to do with the proposal.
+- Use END_CONVERSATION only when there is no pending proposal and the guest is
+  clearly ending the interaction.
 - Do not use GENERAL_CONVERSATION or UNCLEAR to end the interaction.
 - Never claim that a request has been submitted, registered, or completed.
 - The backend handles persistence and confirmation validation.

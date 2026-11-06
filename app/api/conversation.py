@@ -58,6 +58,24 @@ CONVERSATION_CLOSING_RESPONSES = {
     GuestLanguage.PUNJABI: "ਤੁਹਾਡੀ ਮਦਦ ਕਰਕੇ ਖੁਸ਼ੀ ਹੋਈ। ਤੁਹਾਡਾ ਦਿਨ ਚੰਗਾ ਲੰਘੇ!",
 }
 
+PENDING_CONFIRMATION_RESPONSES = {
+    GuestLanguage.ENGLISH: (
+        "I still have your request awaiting confirmation. Would you like me to send it?"
+    ),
+    GuestLanguage.Hindi: "आपका अनुरोध अभी पुष्टि के लिए बाकी है। क्या मैं इसे भेज दूँ?",
+    GuestLanguage.HINGLISH: (
+        "Aapka request abhi confirmation ke liye pending hai. Kya main ise bhej doon?"
+    ),
+    GuestLanguage.TAMIL: "உங்கள் கோரிக்கை இன்னும் உறுதிப்படுத்தப்படவில்லை. அதை அனுப்பவா?",
+    GuestLanguage.TELUGU: "మీ అభ్యర్థన ఇంకా నిర్ధారణ కోసం వేచి ఉంది. దాన్ని పంపించనా?",
+    GuestLanguage.KANNADA: "ನಿಮ್ಮ ವಿನಂತಿಗೆ ಇನ್ನೂ ದೃಢೀಕರಣ ಬೇಕಿದೆ. ಅದನ್ನು ಕಳುಹಿಸಬೇಕೇ?",
+    GuestLanguage.MALAYALAM: "നിങ്ങളുടെ അഭ്യർത്ഥനയ്ക്ക് ഇനിയും സ്ഥിരീകരണം ആവശ്യമാണ്. അത് അയയ്ക്കട്ടേ?",
+    GuestLanguage.MARATHI: "आपल्या विनंतीला अजून पुष्टी आवश्यक आहे. ती पाठवू का?",
+    GuestLanguage.BENGALI: "আপনার অনুরোধটি এখনও নিশ্চিত করা হয়নি। এটি কি পাঠাব?",
+    GuestLanguage.GUJARATI: "તમારી વિનંતીની હજી પુષ્ટિ બાકી છે. શું હું તેને મોકલું?",
+    GuestLanguage.PUNJABI: "ਤੁਹਾਡੀ ਬੇਨਤੀ ਦੀ ਹਾਲੇ ਪੁਸ਼ਟੀ ਬਾਕੀ ਹੈ। ਕੀ ਮੈਂ ਇਸਨੂੰ ਭੇਜਾਂ?",
+}
+
 router = APIRouter(
     prefix="/conversations",
     tags=["Conversations"],
@@ -200,6 +218,19 @@ async def _process_audio_turn(
         conversation_id=conversation.id,
     )
     turn = result.turn
+    if turn.intent == ConversationIntent.END_CONVERSATION and pending_tasks:
+        turn = turn.model_copy(
+            update={
+                "intent": ConversationIntent.UNCLEAR,
+                "tasks": [],
+                "assistant_response": AssistantResponse(
+                    text=PENDING_CONFIRMATION_RESPONSES[conversation.guest_language],
+                    language=conversation.guest_language.value,
+                ),
+            }
+        )
+        result = result.model_copy(update={"turn": turn})
+
     conversation_ended = (
         turn.intent == ConversationIntent.END_CONVERSATION and not turn.tasks
     )

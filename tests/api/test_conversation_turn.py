@@ -208,12 +208,22 @@ async def test_process_conversation_turn_makes_one_reasoning_call():
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    ("intent", "transcript", "guest_language", "conversation_ended", "closing_text"),
+    (
+        "intent",
+        "transcript",
+        "guest_language",
+        "has_pending_proposal",
+        "expected_intent",
+        "conversation_ended",
+        "response_text",
+    ),
     [
         (
             ConversationIntent.END_CONVERSATION,
             "धन्यवाद, अब कोई अनुरोध नहीं है",
             GuestLanguage.ENGLISH,
+            False,
+            ConversationIntent.END_CONVERSATION,
             True,
             "<excited> It was a pleasure assisting you. Have a wonderful day!",
         ),
@@ -221,13 +231,29 @@ async def test_process_conversation_turn_makes_one_reasoning_call():
             ConversationIntent.END_CONVERSATION,
             "धन्यवाद, अब कोई अनुरोध नहीं है",
             GuestLanguage.Hindi,
+            False,
+            ConversationIntent.END_CONVERSATION,
             True,
             "आपकी सहायता करके अच्छा लगा। आपका दिन शुभ हो!",
+        ),
+        (
+            ConversationIntent.END_CONVERSATION,
+            "Yes, thank you, goodbye",
+            GuestLanguage.ENGLISH,
+            True,
+            ConversationIntent.UNCLEAR,
+            False,
+            (
+                "I still have your request awaiting confirmation. "
+                "Would you like me to send it?"
+            ),
         ),
         (
             ConversationIntent.GENERAL_CONVERSATION,
             "Hello, how are you?",
             GuestLanguage.ENGLISH,
+            False,
+            ConversationIntent.GENERAL_CONVERSATION,
             False,
             "You're welcome. Goodbye!",
         ),
@@ -235,6 +261,8 @@ async def test_process_conversation_turn_makes_one_reasoning_call():
             ConversationIntent.CONFIRMATION,
             "Yes",
             GuestLanguage.ENGLISH,
+            False,
+            ConversationIntent.UNCLEAR,
             False,
             "You're welcome. Goodbye!",
         ),
@@ -244,8 +272,10 @@ async def test_conversation_end_intent_controls_closing(
     intent,
     transcript,
     guest_language,
+    has_pending_proposal,
+    expected_intent,
     conversation_ended,
-    closing_text,
+    response_text,
 ):
     conversation_id = uuid.uuid4()
     room_id = uuid.uuid4()
@@ -256,6 +286,12 @@ async def test_conversation_end_intent_controls_closing(
         transcript=transcript,
         guest_language=guest_language,
         created_at=datetime.now(UTC),
+    )
+    pending_raw_input_id = uuid.uuid4()
+    pending_task = ProposedServiceRequest(
+        category=RequestCategory.HOUSEKEEPING,
+        staff_summary="Deliver two towels",
+        priority=RequestPriority.MEDIUM,
     )
     turn = ConversationTurnResult(
         intent=intent,
@@ -299,7 +335,11 @@ async def test_conversation_end_intent_controls_closing(
         ),
         patch(
             "app.api.conversation.ConversationServices.get_pending_proposal",
-            return_value=(None, []),
+            return_value=(
+                (pending_raw_input_id, [pending_task])
+                if has_pending_proposal
+                else (None, [])
+            ),
         ),
         patch(
             "app.api.conversation.ConversationServices.save_turn_message",
@@ -312,6 +352,9 @@ async def test_conversation_end_intent_controls_closing(
             "app.api.conversation.TTSService",
             return_value=tts_service,
         ),
+        patch(
+            "app.api.conversation.ServiceRequestServices.create_service_requests",
+        ) as create_requests,
     ):
         from app.api.conversation import _process_audio_turn
 
@@ -334,15 +377,20 @@ async def test_conversation_end_intent_controls_closing(
     save_turn_message.assert_called_once_with(
         db=db,
         conversation_id=conversation_id,
-        content=closing_text,
-        pending_tasks=[],
-        pending_raw_input_id=None,
+        content=response_text,
+        pending_tasks=[pending_task] if has_pending_proposal else [],
+        pending_raw_input_id=pending_raw_input_id if has_pending_proposal else None,
     )
     assert result.conversation_ended is conversation_ended
-    if intent == ConversationIntent.END_CONVERSATION:
+    assert result.turn.intent == expected_intent
+    if expected_intent == ConversationIntent.END_CONVERSATION:
         assert result.turn.assistant_response == AssistantResponse(
-            text=closing_text,
+            text=response_text,
             language=guest_language.value,
         )
-    if intent == ConversationIntent.CONFIRMATION:
-        assert result.turn.intent == ConversationIntent.UNCLEAR
+    if has_pending_proposal:
+        create_requests.assert_not_called()
+        assert result.turn.assistant_response == AssistantResponse(
+            text=response_text,
+            language=guest_language.value,
+        )

@@ -3,17 +3,17 @@ from app.schemas.assistant import AssistantResponse
 from app.schemas.providers.gnani import SpeechGenerationResult
 
 TTS_VOICE_MAPPING = {
-    "en-IN": "Shivani",
-    "hi-IN": "Shivani",
-    "hi-en": "Shivani",
-    "ta-IN": "Shivani",
-    "te-IN": "Shivani",
-    "kn-IN": "Shivani",
-    "ml-IN": "Shivani",
-    "mr-IN": "Shivani",
-    "bn-IN": "Shivani",
-    "gu-IN": "Shivani",
-    "pa-IN": "Shivani",
+    "en-IN": "Avinash",
+    "hi-IN": "Avinash",
+    "hi-en": "Avinash",
+    "ta-IN": "Avinash",
+    "te-IN": "Avinash",
+    "kn-IN": "Avinash",
+    "ml-IN": "Avinash",
+    "mr-IN": "Avinash",
+    "bn-IN": "Avinash",
+    "gu-IN": "Avinash",
+    "pa-IN": "Avinash",
 }
 
 
