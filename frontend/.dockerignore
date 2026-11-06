@@ -1,0 +1,6 @@
+node_modules
+roomly/node_modules
+roomly/dist
+.env
+.env.*
+npm-debug.log*
