@@ -479,7 +479,7 @@ Provider interactions are separated from business logic. Provider failures, inva
 
 ## 8.5 Serialized Gnani requests
 
-The current implementation serializes Gnani requests and includes retry handling for rate-limit responses. The concurrency lock is process-local, not a distributed lock shared by multiple backend workers.
+The current implementation serializes Gnani requests and retries rate-limit responses plus transient 502/503/504 gateway errors. The concurrency lock is process-local, not a distributed lock shared by multiple backend workers.
 
 # 9. Current Limitations
 
@@ -494,5 +494,4 @@ The current implementation serializes Gnani requests and includes retry handling
 - No Dockerfile or Docker Compose configuration is present in the tracked repository.
 - The Gnani request lock is process-local.
 - ROOMLY is a browser call simulator, not a PBX/SIP or hotel telephone-system integration.
-
 

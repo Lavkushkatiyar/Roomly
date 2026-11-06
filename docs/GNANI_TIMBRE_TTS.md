@@ -56,7 +56,8 @@ https://api.vachana.ai/api/v1/tts/inference
 
 The shared Gnani client supplies the `X-API-Key-ID` authentication header,
 serializes calls through a process-local lock and retries 429 responses using
-the configured waits or a numeric `Retry-After` header.
+the configured waits or a numeric `Retry-After` header. Transient 502, 503
+and 504 gateway responses are retried up to twice, waiting 1 and 2 seconds.
 
 ## 6. Request construction
 
@@ -198,9 +199,10 @@ exception handling and does not have the same explicit provider-to-502
 translation in its route implementation.
 
 The shared Gnani HTTP client uses a 30-second per-request timeout. TTS requests
-are serialized and 429 retries can wait 5, 15 and 30 seconds, unless the
-provider supplies a numeric `Retry-After`. No end-to-end response-time
-guarantee is configured.
+are serialized; 429 retries can wait 5, 15 and 30 seconds, unless the
+provider supplies a numeric `Retry-After`. Transient 502, 503 and 504 gateway
+responses are retried up to twice, waiting 1 and 2 seconds. No end-to-end
+response-time guarantee is configured.
 
 ## 18. Latency and performance
 
