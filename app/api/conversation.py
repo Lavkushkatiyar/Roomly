@@ -23,6 +23,7 @@ from app.providers.gnani.stt import GnaniSTT
 from app.providers.gnani.text_to_speech import GnaniTTS
 from app.providers.reasoning.llm_factory import get_reasoning_provider
 from app.providers.reasoning.ollama import OllamaProvider
+from app.schemas.assistant import AssistantResponse
 from app.schemas.conversation import ConversationCreate, ConversationResponse
 from app.schemas.conversation_turn import (
     ConversationIntent,
@@ -35,6 +36,11 @@ from app.services.tts_service import TTSService
 from app.services.voice_ingestion import VoiceIngestionServices
 
 logger = logging.getLogger(__name__)
+
+CONFIRMATION_RESPONSE = (
+    "Your request is being sent to the hotel team. "
+    "If you need anything else, please make a new request."
+)
 
 router = APIRouter(
     prefix="/conversations",
@@ -186,10 +192,19 @@ async def _process_audio_turn(
     if turn.intent == ConversationIntent.CONFIRMATION:
         if pending_tasks:
             turn = turn.model_copy(update={"tasks": pending_tasks})
+            turn = turn.model_copy(
+                update={
+                    "assistant_response": AssistantResponse(
+                        text=CONFIRMATION_RESPONSE,
+                        language=conversation.guest_language.value,
+                    )
+                }
+            )
             result = result.model_copy(update={"turn": turn})
             confirmed_raw_input_id = pending_raw_input_id
             pending_tasks = []
             pending_raw_input_id = None
+            conversation_ended = True
         else:
             turn = turn.model_copy(
                 update={
