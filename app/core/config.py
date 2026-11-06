@@ -11,6 +11,8 @@ class Settings(BaseSettings):
     REASONING_PROVIDER: str = "ollama"
     REASONING_MODEL: str = "qwen3:8b"
     OLLAMA_BASE_URL: str = "http://localhost:11434"
+    OPENROUTER_API_KEY: str = "your-api-key"
+    OPENROUTER_BASE_URL: str = "https://openrouter.ai/api/v1"
 
     model_config = SettingsConfigDict(
         env_file=".env",
