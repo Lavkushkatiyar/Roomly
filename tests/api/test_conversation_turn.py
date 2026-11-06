@@ -98,6 +98,10 @@ async def test_conversation_turn_processes_and_persists_confirmation():
         patch(
             "app.api.conversation.ConversationServices.save_turn_message",
         ) as save_turn_message,
+        patch(
+            "app.api.conversation.ConversationServices.end_conversation",
+            return_value=conversation,
+        ) as end_conversation,
     ):
         from app.api.conversation import _process_audio_turn
 
@@ -120,15 +124,34 @@ async def test_conversation_turn_processes_and_persists_confirmation():
     save_turn_message.assert_called_once_with(
         db=db,
         conversation_id=conversation_id,
-        content=turn.assistant_response.text,
+        content=(
+            "Your request is being sent to the hotel team. "
+            "If you need anything else, please make a new request."
+        ),
         pending_tasks=[],
         pending_raw_input_id=None,
     )
     tts_service.generate_speech.assert_awaited_once_with(
-        assistant_response=turn.assistant_response,
+        assistant_response=AssistantResponse(
+            text=(
+                "Your request is being sent to the hotel team. "
+                "If you need anything else, please make a new request."
+            ),
+            language=GuestLanguage.ENGLISH.value,
+        ),
+    )
+    end_conversation.assert_called_once_with(
+        db=db,
+        conversation_id=conversation_id,
     )
     assert result.conversation_id == conversation_id
+    assert result.conversation_ended
     assert result.turn.tasks == [task]
+    assert (
+        result.turn.assistant_response.text
+        == "Your request is being sent to the hotel team. "
+        "If you need anything else, please make a new request."
+    )
     assert base64.b64decode(result.audio.audio_base64) == b"wav audio"
     assert result.audio.content_type == "audio/wav"
     audio.close.assert_awaited_once()
@@ -195,6 +218,11 @@ async def test_process_conversation_turn_makes_one_reasoning_call():
         (
             ConversationIntent.GENERAL_CONVERSATION,
             "Hello, how are you?",
+            False,
+        ),
+        (
+            ConversationIntent.CONFIRMATION,
+            "Yes",
             False,
         ),
     ],
@@ -296,3 +324,5 @@ async def test_conversation_end_intent_controls_closing(
         pending_raw_input_id=None,
     )
     assert result.conversation_ended is conversation_ended
+    if intent == ConversationIntent.CONFIRMATION:
+        assert result.turn.intent == ConversationIntent.UNCLEAR
