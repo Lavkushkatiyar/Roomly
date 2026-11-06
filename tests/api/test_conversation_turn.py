@@ -181,3 +181,96 @@ async def test_process_conversation_turn_makes_one_reasoning_call():
         context=[],
     )
     assert result.turn is turn
+
+
+@pytest.mark.asyncio
+async def test_closing_utterance_ends_conversation():
+    conversation_id = uuid.uuid4()
+    room_id = uuid.uuid4()
+    raw_input = RawInputResponse(
+        id=uuid.uuid4(),
+        room_id=room_id,
+        conversation_id=conversation_id,
+        transcript="That's all, thank you.",
+        guest_language=GuestLanguage.ENGLISH,
+        created_at=datetime.now(UTC),
+    )
+    turn = ConversationTurnResult(
+        intent=ConversationIntent.GENERAL_CONVERSATION,
+        tasks=[],
+        assistant_response=AssistantResponse(
+            text="You're welcome. Goodbye!",
+            language=GuestLanguage.ENGLISH.value,
+        ),
+    )
+    processing_result = ConversationTurnProcessingResult(
+        raw_input=raw_input,
+        turn=turn,
+    )
+    conversation = Conversation(
+        id=conversation_id,
+        room_id=room_id,
+        guest_language=GuestLanguage.ENGLISH,
+        status=ConversationStatus.ACTIVE,
+    )
+    audio = MagicMock()
+    audio.filename = "recording.wav"
+    audio.read = AsyncMock(return_value=b"recording")
+    audio.close = AsyncMock()
+    ingestion_service = MagicMock()
+    ingestion_service.process_conversation_turn = AsyncMock(
+        return_value=processing_result,
+    )
+    tts_service = MagicMock()
+    tts_service.generate_speech = AsyncMock(
+        return_value=SimpleNamespace(
+            audio_data=b"wav audio",
+            content_type="audio/wav",
+        ),
+    )
+    db = MagicMock()
+
+    with (
+        patch(
+            "app.api.conversation.VoiceIngestionServices",
+            return_value=ingestion_service,
+        ),
+        patch(
+            "app.api.conversation.ConversationServices.get_pending_proposal",
+            return_value=(None, []),
+        ),
+        patch(
+            "app.api.conversation.ConversationServices.save_turn_message",
+        ) as save_turn_message,
+        patch(
+            "app.api.conversation.ConversationServices.end_conversation",
+            return_value=conversation,
+        ) as end_conversation,
+        patch(
+            "app.api.conversation.TTSService",
+            return_value=tts_service,
+        ),
+    ):
+        from app.api.conversation import _process_audio_turn
+
+        result = await _process_audio_turn(
+            conversation=conversation,
+            audio=audio,
+            db=db,
+            stt_provider=MagicMock(),
+            reasoning_provider=MagicMock(),
+            tts_provider=MagicMock(),
+        )
+
+    end_conversation.assert_called_once_with(
+        db=db,
+        conversation_id=conversation_id,
+    )
+    save_turn_message.assert_called_once_with(
+        db=db,
+        conversation_id=conversation_id,
+        content=turn.assistant_response.text,
+        pending_tasks=[],
+        pending_raw_input_id=None,
+    )
+    assert result.conversation_ended

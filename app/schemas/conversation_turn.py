@@ -43,6 +43,7 @@ class ConversationTurnResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     conversation_id: UUID
+    conversation_ended: bool = False
     raw_input: RawInputResponse
     turn: ConversationTurnResult
     audio: ConversationTurnAudio

@@ -40,6 +40,9 @@ Supported intents:
    The guest is chatting, greeting, thanking, or asking a general
    conversational question unrelated to a service request.
    Return an empty task list.
+   If the guest clearly signals that they are finished (for example
+   "that's all, thank you", "I'm done", or "goodbye"), respond with a
+   brief, polite closing.
 
 6. UNCLEAR
    The guest's intention cannot be determined reliably.
