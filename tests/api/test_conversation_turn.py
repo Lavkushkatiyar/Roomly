@@ -208,29 +208,44 @@ async def test_process_conversation_turn_makes_one_reasoning_call():
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    ("intent", "transcript", "conversation_ended"),
+    ("intent", "transcript", "guest_language", "conversation_ended", "closing_text"),
     [
         (
             ConversationIntent.END_CONVERSATION,
             "धन्यवाद, अब कोई अनुरोध नहीं है",
+            GuestLanguage.ENGLISH,
             True,
+            "<excited> It was a pleasure assisting you. Have a wonderful day!",
+        ),
+        (
+            ConversationIntent.END_CONVERSATION,
+            "धन्यवाद, अब कोई अनुरोध नहीं है",
+            GuestLanguage.Hindi,
+            True,
+            "आपकी सहायता करके अच्छा लगा। आपका दिन शुभ हो!",
         ),
         (
             ConversationIntent.GENERAL_CONVERSATION,
             "Hello, how are you?",
+            GuestLanguage.ENGLISH,
             False,
+            "You're welcome. Goodbye!",
         ),
         (
             ConversationIntent.CONFIRMATION,
             "Yes",
+            GuestLanguage.ENGLISH,
             False,
+            "You're welcome. Goodbye!",
         ),
     ],
 )
 async def test_conversation_end_intent_controls_closing(
     intent,
     transcript,
+    guest_language,
     conversation_ended,
+    closing_text,
 ):
     conversation_id = uuid.uuid4()
     room_id = uuid.uuid4()
@@ -239,7 +254,7 @@ async def test_conversation_end_intent_controls_closing(
         room_id=room_id,
         conversation_id=conversation_id,
         transcript=transcript,
-        guest_language=GuestLanguage.ENGLISH,
+        guest_language=guest_language,
         created_at=datetime.now(UTC),
     )
     turn = ConversationTurnResult(
@@ -257,7 +272,7 @@ async def test_conversation_end_intent_controls_closing(
     conversation = Conversation(
         id=conversation_id,
         room_id=room_id,
-        guest_language=GuestLanguage.ENGLISH,
+        guest_language=guest_language,
         status=ConversationStatus.ACTIVE,
     )
     audio = MagicMock()
@@ -319,10 +334,15 @@ async def test_conversation_end_intent_controls_closing(
     save_turn_message.assert_called_once_with(
         db=db,
         conversation_id=conversation_id,
-        content=turn.assistant_response.text,
+        content=closing_text,
         pending_tasks=[],
         pending_raw_input_id=None,
     )
     assert result.conversation_ended is conversation_ended
+    if intent == ConversationIntent.END_CONVERSATION:
+        assert result.turn.assistant_response == AssistantResponse(
+            text=closing_text,
+            language=guest_language.value,
+        )
     if intent == ConversationIntent.CONFIRMATION:
         assert result.turn.intent == ConversationIntent.UNCLEAR

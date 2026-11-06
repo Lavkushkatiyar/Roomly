@@ -42,6 +42,22 @@ CONFIRMATION_RESPONSE = (
     "If you need anything else, please make a new request."
 )
 
+CONVERSATION_CLOSING_RESPONSES = {
+    GuestLanguage.ENGLISH: (
+        "<excited> It was a pleasure assisting you. Have a wonderful day!"
+    ),
+    GuestLanguage.Hindi: "आपकी सहायता करके अच्छा लगा। आपका दिन शुभ हो!",
+    GuestLanguage.HINGLISH: "आपकी मदद करके अच्छा लगा। आपका दिन शुभ हो!",
+    GuestLanguage.TAMIL: "உங்களுக்கு உதவியதில் மகிழ்ச்சி. இனிய நாளாக அமையட்டும்!",
+    GuestLanguage.TELUGU: "మీకు సహాయం చేయడం ఆనందంగా ఉంది. మీ రోజు శుభంగా ఉండాలి!",
+    GuestLanguage.KANNADA: "ನಿಮಗೆ ಸಹಾಯ ಮಾಡಲು ಸಂತೋಷವಾಯಿತು. ನಿಮ್ಮ ದಿನ ಶುಭವಾಗಿರಲಿ!",
+    GuestLanguage.MALAYALAM: "നിങ്ങളെ സഹായിച്ചതിൽ സന്തോഷം. നിങ്ങളുടെ ദിവസം ശുഭകരമാകട്ടെ!",
+    GuestLanguage.MARATHI: "आपली मदत करताना आनंद झाला. आपला दिवस शुभ जावो!",
+    GuestLanguage.BENGALI: "আপনাকে সাহায্য করতে পেরে ভালো লাগল। আপনার দিনটি শুভ হোক!",
+    GuestLanguage.GUJARATI: "આપની મદદ કરીને આનંદ થયો. આપનો દિવસ શુભ રહે!",
+    GuestLanguage.PUNJABI: "ਤੁਹਾਡੀ ਮਦਦ ਕਰਕੇ ਖੁਸ਼ੀ ਹੋਈ। ਤੁਹਾਡਾ ਦਿਨ ਚੰਗਾ ਲੰਘੇ!",
+}
+
 router = APIRouter(
     prefix="/conversations",
     tags=["Conversations"],
@@ -214,6 +230,16 @@ async def _process_audio_turn(
             )
             result = result.model_copy(update={"turn": turn})
             pending_raw_input_id = None
+    elif conversation_ended:
+        turn = turn.model_copy(
+            update={
+                "assistant_response": AssistantResponse(
+                    text=CONVERSATION_CLOSING_RESPONSES[conversation.guest_language],
+                    language=conversation.guest_language.value,
+                )
+            }
+        )
+        result = result.model_copy(update={"turn": turn})
     elif turn.intent == ConversationIntent.REJECTION:
         pending_tasks = []
         pending_raw_input_id = None
