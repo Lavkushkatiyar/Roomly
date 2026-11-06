@@ -3,7 +3,7 @@ export function IngestionResults({ result }) {
     return null;
   }
 
-  const tasks = result.extraction.tasks;
+  const tasks = result.turn.tasks;
 
   return (
     <section

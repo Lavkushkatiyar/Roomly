@@ -1,3 +1,4 @@
+import json
 import uuid
 from datetime import UTC, datetime
 
@@ -10,6 +11,9 @@ from app.db.models.conversation_message import ConversationMessage
 from app.db.models.enums import ConversationStatus, GuestLanguage, MessageRole
 from app.db.models.hotel_room import HotelRoom
 from app.db.models.raw_input import RawInput
+from app.schemas.task_extraction import ProposedServiceRequest
+
+PENDING_TASKS_MARKER = "\n[roomly-pending-tasks:"
 
 
 class ConversationServices:
@@ -91,6 +95,83 @@ class ConversationServices:
         return message
 
     @staticmethod
+    def save_turn_message(
+        db: Session,
+        conversation_id: uuid.UUID,
+        content: str,
+        pending_tasks: list[ProposedServiceRequest],
+        pending_raw_input_id: uuid.UUID | None,
+    ) -> ConversationMessage:
+        serialized_tasks = json.dumps(
+            {
+                "raw_input_id": (
+                    str(pending_raw_input_id)
+                    if pending_raw_input_id is not None
+                    else None
+                ),
+                "tasks": [task.model_dump(mode="json") for task in pending_tasks],
+            },
+            separators=(",", ":"),
+        )
+        stored_content = f"{content.strip()}{PENDING_TASKS_MARKER}{serialized_tasks}]"
+
+        return ConversationServices.save_message(
+            db=db,
+            conversation_id=conversation_id,
+            role=MessageRole.ASSISTANT,
+            content=stored_content,
+        )
+
+    @staticmethod
+    def get_pending_proposal(
+        db: Session,
+        conversation_id: uuid.UUID,
+    ) -> tuple[uuid.UUID | None, list[ProposedServiceRequest]]:
+        statement = (
+            select(ConversationMessage.content)
+            .where(
+                ConversationMessage.conversation_id == conversation_id,
+                ConversationMessage.role == MessageRole.ASSISTANT,
+            )
+            .order_by(ConversationMessage.created_at.desc())
+            .limit(1)
+        )
+        content = db.scalar(statement)
+
+        if content is None or PENDING_TASKS_MARKER not in content:
+            return None, []
+
+        serialized_tasks = content.rsplit(PENDING_TASKS_MARKER, 1)[1]
+        try:
+            proposal_data = json.loads(serialized_tasks.removesuffix("]"))
+            if isinstance(proposal_data, list):
+                raw_input_id = None
+                task_data = proposal_data
+            else:
+                raw_input_id = (
+                    uuid.UUID(proposal_data["raw_input_id"])
+                    if proposal_data["raw_input_id"] is not None
+                    else None
+                )
+                task_data = proposal_data["tasks"]
+
+            tasks = [ProposedServiceRequest.model_validate(task) for task in task_data]
+            return raw_input_id, tasks
+        except (KeyError, json.JSONDecodeError, TypeError, ValueError) as exc:
+            raise ValueError("Stored conversation proposal is invalid.") from exc
+
+    @staticmethod
+    def get_pending_tasks(
+        db: Session,
+        conversation_id: uuid.UUID,
+    ) -> list[ProposedServiceRequest]:
+        _, tasks = ConversationServices.get_pending_proposal(
+            db=db,
+            conversation_id=conversation_id,
+        )
+        return tasks
+
+    @staticmethod
     def _validate_conversation(
         db: Session,
         conversation_id: uuid.UUID,
@@ -168,10 +249,33 @@ class ConversationServices:
         messages = guest_messages + assistant_messages
         messages.sort(key=lambda message: message["created_at"])
 
-        return [
-            {"role": message["role"], "content": message["content"]}
-            for message in messages[-limit:]
-        ]
+        context = []
+        for message in messages[-limit:]:
+            content = message["content"]
+            if PENDING_TASKS_MARKER in content:
+                assistant_text, serialized_tasks = content.rsplit(
+                    PENDING_TASKS_MARKER,
+                    1,
+                )
+                try:
+                    proposal_data = json.loads(serialized_tasks.removesuffix("]"))
+                    task_data = (
+                        proposal_data
+                        if isinstance(proposal_data, list)
+                        else proposal_data["tasks"]
+                    )
+                except (KeyError, json.JSONDecodeError, TypeError) as exc:
+                    raise ValueError(
+                        "Stored conversation proposal is invalid."
+                    ) from exc
+                content = (
+                    f"{assistant_text}\n"
+                    "Pending service requests (internal context, not yet "
+                    f"submitted): {json.dumps(task_data, separators=(',', ':'))}"
+                )
+            context.append({"role": message["role"], "content": content})
+
+        return context
 
     @staticmethod
     def end_conversation(

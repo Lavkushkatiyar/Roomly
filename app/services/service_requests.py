@@ -1,6 +1,7 @@
 import uuid
 
 from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.db.models.enums import RequestStatus
@@ -75,16 +76,23 @@ class ServiceRequestServices:
         db: Session,
         raw_input_id: uuid.UUID,
         requests: list[ProposedServiceRequest],
+        *,
+        commit: bool = True,
     ) -> list[ServiceRequest]:
         service_requests = [
             ServiceRequest(raw_input_id=raw_input_id, **request.model_dump())
             for request in requests
         ]
 
-        db.add_all(service_requests)
-        db.commit()
+        try:
+            db.add_all(service_requests)
+            if commit:
+                db.commit()
 
-        for service_request in service_requests:
-            db.refresh(service_request)
+                for service_request in service_requests:
+                    db.refresh(service_request)
+        except SQLAlchemyError:
+            db.rollback()
+            raise
 
         return service_requests

@@ -13,7 +13,6 @@ class TTSService:
     ) -> SpeechGenerationResult:
         voice = "Avinash"
         language_code = assistant_response.language
-        print(assistant_response, "response i got ")
 
         return await self.provider.generate_voice(
             text=assistant_response.text,

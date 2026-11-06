@@ -1,4 +1,5 @@
 from enum import StrEnum
+from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -24,8 +25,24 @@ class ConversationTurnResult(BaseModel):
     assistant_response: AssistantResponse
 
 
-class ConversationTurnResponse(BaseModel):
+class ConversationTurnAudio(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    audio_base64: str
+    content_type: str
+
+
+class ConversationTurnProcessingResult(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     raw_input: RawInputResponse
     turn: ConversationTurnResult
+
+
+class ConversationTurnResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    conversation_id: UUID
+    raw_input: RawInputResponse
+    turn: ConversationTurnResult
+    audio: ConversationTurnAudio

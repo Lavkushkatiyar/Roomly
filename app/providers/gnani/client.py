@@ -87,7 +87,6 @@ class GnaniClient:
         response = await self._http.post(path, json=json)
 
         logger.info("Gnani TTS status: %s", response.status_code)
-        logger.info("Gnani TTS response: %s", response.text)
 
         try:
             response.raise_for_status()
