@@ -10,10 +10,11 @@ import { useConversationTurn } from "../hooks/useConversationTurn";
 import { playNaturalMessage } from "../utils/naturalSpeech";
 import "./guest-call.css";
 
-export function GuestCallScreen({ roomId, guestLanguage }) {
-  const [isGreeting, setIsGreeting] = useState(true);
+export function GuestCallScreen({ roomId, guestLanguage, greetOnEntry = false }) {
+  const [isGreeting, setIsGreeting] = useState(false);
   const [greetingError, setGreetingError] = useState(null);
   const greetingControllerRef = useRef(null);
+  const conversationStartedRef = useRef(false);
   const {
     status: recorderStatus,
     errorMessage: recordingError,
@@ -39,7 +40,12 @@ export function GuestCallScreen({ roomId, guestLanguage }) {
   });
   const submittedBlobRef = useRef(null);
 
-  const greetAndListen = useCallback(async () => {
+  const startConversationWithGreeting = useCallback(async () => {
+    if (conversationStartedRef.current) {
+      return;
+    }
+
+    conversationStartedRef.current = true;
     greetingControllerRef.current?.abort();
     const controller = new AbortController();
     greetingControllerRef.current = controller;
@@ -70,10 +76,14 @@ export function GuestCallScreen({ roomId, guestLanguage }) {
   }, [guestLanguage, startRecording]);
 
   useEffect(() => {
+    if (!greetOnEntry) {
+      return undefined;
+    }
+
     let cancelled = false;
     const timer = window.setTimeout(() => {
       if (!cancelled) {
-        void greetAndListen();
+        void startConversationWithGreeting();
       }
     }, 0);
 
@@ -82,7 +92,7 @@ export function GuestCallScreen({ roomId, guestLanguage }) {
       window.clearTimeout(timer);
       greetingControllerRef.current?.abort();
     };
-  }, [greetAndListen]);
+  }, [greetOnEntry, startConversationWithGreeting]);
 
   useEffect(() => {
     if (
@@ -103,11 +113,17 @@ export function GuestCallScreen({ roomId, guestLanguage }) {
 
   const toggleRecording = () => {
     if (ingestionStatus === "conversation_ended") {
-      void greetAndListen();
+      conversationStartedRef.current = false;
+      void startConversationWithGreeting();
       return;
     }
 
     setGreetingError(null);
+
+    if (!conversationStartedRef.current) {
+      void startConversationWithGreeting();
+      return;
+    }
 
     if (recorderStatus === "recording") {
       stopRecording();

@@ -12,6 +12,7 @@ import {
 
 export default function App() {
   const [guestSession, setGuestSession] = useState(loadGuestSession);
+  const [greetOnEntry, setGreetOnEntry] = useState(false);
 
   const enterRoom = async ({ roomNumber, guestLanguage }) => {
     const room = await getOrCreateRoom(roomNumber);
@@ -23,6 +24,7 @@ export default function App() {
 
     saveGuestSession(session);
     setGuestSession(session);
+    setGreetOnEntry(true);
   };
 
   const logOut = () => {
@@ -39,6 +41,7 @@ export default function App() {
       {guestSession ? (
         <GuestCallScreen
           guestLanguage={guestSession.guestLanguage}
+          greetOnEntry={greetOnEntry}
           roomId={guestSession.roomId}
         />
       ) : (
