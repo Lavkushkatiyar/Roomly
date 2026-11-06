@@ -29,10 +29,7 @@ from app.schemas.conversation_turn import (
     ConversationTurnAudio,
     ConversationTurnResponse,
 )
-from app.services.conversation_services import (
-    ConversationServices,
-    is_conversation_closing_utterance,
-)
+from app.services.conversation_services import ConversationServices
 from app.services.service_requests import ServiceRequestServices
 from app.services.tts_service import TTSService
 from app.services.voice_ingestion import VoiceIngestionServices
@@ -182,8 +179,7 @@ async def _process_audio_turn(
     )
     turn = result.turn
     conversation_ended = (
-        turn.intent == ConversationIntent.GENERAL_CONVERSATION
-        and is_conversation_closing_utterance(result.raw_input.transcript)
+        turn.intent == ConversationIntent.END_CONVERSATION and not turn.tasks
     )
     confirmed_raw_input_id = None
 
