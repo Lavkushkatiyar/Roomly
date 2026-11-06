@@ -1,7 +1,8 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { submitConversationTurn } from "../api/conversationTurn";
 import { playAudioBlob } from "../utils/audioPlayback";
+import { playNaturalMessage } from "../utils/naturalSpeech";
 
 const INITIAL_STATE = {
   status: "idle",
@@ -41,6 +42,30 @@ export function useConversationTurn({
   const submittingRef = useRef(false);
   const conversationIdRef = useRef(null);
   const speechBlobRef = useRef(null);
+  const mountedRef = useRef(false);
+  const playbackControllersRef = useRef(new Set());
+
+  const createPlaybackController = useCallback(() => {
+    const controller = new AbortController();
+    playbackControllersRef.current.add(controller);
+    controller.signal.addEventListener(
+      "abort",
+      () => playbackControllersRef.current.delete(controller),
+      { once: true },
+    );
+    return controller;
+  }, []);
+
+  useEffect(() => {
+    const playbackControllers = playbackControllersRef.current;
+    mountedRef.current = true;
+
+    return () => {
+      mountedRef.current = false;
+      playbackControllers.forEach((controller) => controller.abort());
+      playbackControllers.clear();
+    };
+  }, []);
 
   const submitRecording = useCallback(
     async (audioBlob) => {
@@ -50,6 +75,8 @@ export function useConversationTurn({
 
       submittingRef.current = true;
       speechBlobRef.current = null;
+      const acknowledgementController = createPlaybackController();
+      let acknowledgementTimer;
       setState((current) => ({
         ...current,
         status: "uploading",
@@ -58,11 +85,46 @@ export function useConversationTurn({
       }));
 
       try {
+        acknowledgementTimer = window.setTimeout(() => {
+          if (!mountedRef.current || acknowledgementController.signal.aborted) {
+            return;
+          }
+
+          setState((current) => ({ ...current, status: "acknowledging" }));
+          void playNaturalMessage(guestLanguage, "processing", {
+            signal: acknowledgementController.signal,
+          })
+            .catch((error) => {
+              if (
+                !acknowledgementController.signal.aborted &&
+                mountedRef.current
+              ) {
+                setState((current) => ({
+                  ...current,
+                  errorMessage:
+                    error instanceof Error
+                      ? `Processing acknowledgement failed: ${error.message}`
+                      : "Processing acknowledgement failed.",
+                }));
+              }
+            })
+            .finally(() => {
+              playbackControllersRef.current.delete(acknowledgementController);
+            });
+        }, 700);
+
         const result = await submitConversationTurn(audioBlob, {
           roomId,
           guestLanguage,
           conversationId: conversationIdRef.current,
         });
+        window.clearTimeout(acknowledgementTimer);
+        acknowledgementController.abort();
+
+        if (!mountedRef.current) {
+          return;
+        }
+
         conversationIdRef.current = result.conversation_ended
           ? null
           : result.conversation_id;
@@ -82,38 +144,85 @@ export function useConversationTurn({
           ],
         }));
 
+        const responseController = createPlaybackController();
         try {
-          await playAudioBlob(result.speechBlob);
+          await playAudioBlob(result.speechBlob, {
+            signal: responseController.signal,
+          });
         } catch (error) {
-          setState((current) => ({
-            ...current,
-            status: readyStatus,
-            errorMessage:
-              error instanceof Error
-                ? `Speech playback failed: ${error.message}`
-                : "Speech playback failed.",
-          }));
+          if (!responseController.signal.aborted) {
+            setState((current) => ({
+              ...current,
+              status: readyStatus,
+              errorMessage:
+                error instanceof Error
+                  ? `Speech playback failed: ${error.message}`
+                  : "Speech playback failed.",
+            }));
+            return;
+          }
+        } finally {
+          playbackControllersRef.current.delete(responseController);
+        }
+
+        if (responseController.signal.aborted || !mountedRef.current) {
           return;
         }
 
         setState((current) => ({ ...current, status: readyStatus }));
         if (!result.conversation_ended) {
+          const continuationController = createPlaybackController();
+          setState((current) => ({ ...current, status: "speaking" }));
+          try {
+            await playNaturalMessage(guestLanguage, "continuation", {
+              signal: continuationController.signal,
+            });
+          } catch (error) {
+            if (
+              !continuationController.signal.aborted &&
+              mountedRef.current
+            ) {
+              setState((current) => ({
+                ...current,
+                errorMessage:
+                  error instanceof Error
+                    ? `Continuation prompt failed: ${error.message}`
+                    : "Continuation prompt failed.",
+              }));
+            }
+          } finally {
+            playbackControllersRef.current.delete(continuationController);
+          }
+
+          if (
+            continuationController.signal.aborted ||
+            !mountedRef.current
+          ) {
+            return;
+          }
+          setState((current) => ({ ...current, status: readyStatus }));
+          submittingRef.current = false;
           await onResponseFinished?.();
         }
       } catch (error) {
-        setState((current) => ({
-          ...current,
-          status: "error",
-          errorMessage:
-            error instanceof Error
-              ? error.message
-              : "Conversation processing failed.",
-        }));
+        if (mountedRef.current) {
+          setState((current) => ({
+            ...current,
+            status: "error",
+            errorMessage:
+              error instanceof Error
+                ? error.message
+                : "Conversation processing failed.",
+          }));
+        }
       } finally {
+        window.clearTimeout(acknowledgementTimer);
+        acknowledgementController.abort();
+        playbackControllersRef.current.delete(acknowledgementController);
         submittingRef.current = false;
       }
     },
-    [guestLanguage, onResponseFinished, roomId],
+    [createPlaybackController, guestLanguage, onResponseFinished, roomId],
   );
 
   const playResponse = useCallback(async () => {
@@ -122,19 +231,28 @@ export function useConversationTurn({
       return;
     }
 
+    const playbackController = createPlaybackController();
     try {
-      await playAudioBlob(speechBlob);
-      setState((current) => ({ ...current, errorMessage: null }));
+      await playAudioBlob(speechBlob, {
+        signal: playbackController.signal,
+      });
+      if (mountedRef.current && !playbackController.signal.aborted) {
+        setState((current) => ({ ...current, errorMessage: null }));
+      }
     } catch (error) {
-      setState((current) => ({
-        ...current,
-        errorMessage:
-          error instanceof Error
-            ? `Speech playback failed: ${error.message}`
-            : "Speech playback failed.",
-      }));
+      if (mountedRef.current && !playbackController.signal.aborted) {
+        setState((current) => ({
+          ...current,
+          errorMessage:
+            error instanceof Error
+              ? `Speech playback failed: ${error.message}`
+              : "Speech playback failed.",
+        }));
+      }
+    } finally {
+      playbackControllersRef.current.delete(playbackController);
     }
-  }, []);
+  }, [createPlaybackController]);
 
   return {
     ...state,

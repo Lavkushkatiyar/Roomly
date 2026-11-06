@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { AudioWaveform } from "./AudioWaveform";
 import { CallStatus } from "./CallStatus";
@@ -7,9 +7,13 @@ import { IngestionResults } from "./IngestionResults";
 import { VoiceControl } from "./VoiceControl";
 import { useAudioRecorder } from "../hooks/useAudioRecorder";
 import { useConversationTurn } from "../hooks/useConversationTurn";
+import { playNaturalMessage } from "../utils/naturalSpeech";
 import "./guest-call.css";
 
 export function GuestCallScreen({ roomId, guestLanguage }) {
+  const [isGreeting, setIsGreeting] = useState(true);
+  const [greetingError, setGreetingError] = useState(null);
+  const greetingControllerRef = useRef(null);
   const {
     status: recorderStatus,
     errorMessage: recordingError,
@@ -35,6 +39,51 @@ export function GuestCallScreen({ roomId, guestLanguage }) {
   });
   const submittedBlobRef = useRef(null);
 
+  const greetAndListen = useCallback(async () => {
+    greetingControllerRef.current?.abort();
+    const controller = new AbortController();
+    greetingControllerRef.current = controller;
+    setIsGreeting(true);
+    setGreetingError(null);
+
+    try {
+      await playNaturalMessage(guestLanguage, "greeting", {
+        signal: controller.signal,
+      });
+    } catch (error) {
+      if (controller.signal.aborted) {
+        return;
+      }
+      setGreetingError(
+        error instanceof Error
+          ? `Greeting playback failed: ${error.message}`
+          : "Greeting playback failed.",
+      );
+    }
+
+    if (controller.signal.aborted) {
+      return;
+    }
+
+    setIsGreeting(false);
+    await startRecording();
+  }, [guestLanguage, startRecording]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      if (!cancelled) {
+        void greetAndListen();
+      }
+    }, 0);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+      greetingControllerRef.current?.abort();
+    };
+  }, [greetAndListen]);
+
   useEffect(() => {
     if (
       recorderStatus !== "recorded" ||
@@ -53,6 +102,13 @@ export function GuestCallScreen({ roomId, guestLanguage }) {
   ]);
 
   const toggleRecording = () => {
+    if (ingestionStatus === "conversation_ended") {
+      void greetAndListen();
+      return;
+    }
+
+    setGreetingError(null);
+
     if (recorderStatus === "recording") {
       stopRecording();
       return;
@@ -83,10 +139,12 @@ export function GuestCallScreen({ roomId, guestLanguage }) {
   ].includes(recorderStatus);
   const status = recorderIsActive
     ? recorderStatus
-    : ingestionStatus !== "idle"
-      ? ingestionStatus
-      : recorderStatus;
-  const errorMessage = ingestionError ?? recordingError;
+    : isGreeting
+      ? "greeting"
+      : ingestionStatus !== "idle"
+        ? ingestionStatus
+        : recorderStatus;
+  const errorMessage = ingestionError ?? greetingError ?? recordingError;
 
   return (
     <main className="guest-call" aria-labelledby="guest-call-title">
@@ -98,10 +156,11 @@ export function GuestCallScreen({ roomId, guestLanguage }) {
             onToggle={toggleRecording}
             disabled={[
               "uploading",
+              "acknowledging",
               "speaking",
               "confirming",
               "saving",
-            ].includes(ingestionStatus)}
+            ].includes(ingestionStatus) || isGreeting}
             retryUpload={ingestionStatus === "error" && Boolean(audioBlob)}
           />
           <AudioWaveform active={status === "recording"} />
@@ -115,6 +174,12 @@ export function GuestCallScreen({ roomId, guestLanguage }) {
               className="call-status__play"
               type="button"
               onClick={playResponse}
+              disabled={
+                recorderIsActive ||
+                ["uploading", "acknowledging", "speaking"].includes(
+                  ingestionStatus,
+                )
+              }
             >
               Play response
             </button>

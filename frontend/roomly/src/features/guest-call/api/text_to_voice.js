@@ -12,9 +12,11 @@ export async function synthesizeSpeech(assistantResponse) {
 
   let response;
   try {
-    response = await apiClient.post("voice_generate/", assistantResponse, {
+    const { signal, ...responseData } = assistantResponse;
+    response = await apiClient.post("voice_generate/", responseData, {
       responseType: "blob",
       timeout: 60_000,
+      signal,
     });
   } catch (error) {
     if (error?.response) {
