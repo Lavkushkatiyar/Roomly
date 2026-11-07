@@ -645,16 +645,5 @@ Provider interactions are separated from business logic. Provider failures, inva
 The current implementation serializes Gnani requests and retries rate-limit responses plus transient 502/503/504 gateway errors. The concurrency lock is process-local, not a distributed lock shared by multiple backend workers.
 
 # 9. Current Limitations
-
-- The exact deployed Prisma model version must be verified from a live provider response.
-- No complete live language-quality evaluation is available for all 11 configured languages.
-- No published end-to-end latency benchmark is available.
-- The active reasoning provider depends on runtime configuration.
-- The OpenRouter adapter currently uses a hard-coded model ID.
-- Frontend automated tests and browser end-to-end tests are not configured.
-- The inspected GitHub Actions workflow has a Python-version mismatch.
-- The inspected workflow does not perform automated deployment.
-- No Dockerfile or Docker Compose configuration is present in the tracked repository.
-- The Gnani request lock is process-local.
 - ROOMLY is a browser call simulator, not a PBX/SIP or hotel telephone-system integration.
 
