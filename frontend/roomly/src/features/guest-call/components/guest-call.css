@@ -20,9 +20,10 @@
 }
 
 .guest-header__logo {
-  width: 1.4rem;
-  height: 1.4rem;
-  color: var(--color-olive);
+  display: block;
+  width: 3.15rem;
+  height: 3rem;
+  object-fit: contain;
 }
 
 .guest-header__name {
