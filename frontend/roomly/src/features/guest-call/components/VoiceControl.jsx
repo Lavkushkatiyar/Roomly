@@ -15,7 +15,7 @@ export function VoiceControl({
     status === "confirming" ||
     status === "saving";
   const label = isRecording
-    ? "End voice recording"
+    ? "Stop recording and send your request"
     : status === "awaiting_clarification"
       ? "Speak your clarification"
       : status === "awaiting_confirmation"

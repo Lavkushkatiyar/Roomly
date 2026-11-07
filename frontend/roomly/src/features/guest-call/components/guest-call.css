@@ -299,6 +299,14 @@
   text-transform: uppercase;
 }
 
+.call-status__hint {
+  max-width: 22rem;
+  margin: 0.55rem 0 0;
+  color: var(--color-secondary);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
 .call-status__indicator {
   width: 0.42rem;
   height: 0.42rem;

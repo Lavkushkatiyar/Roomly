@@ -2,7 +2,7 @@ const STATUS_LABELS = {
   idle: "Tap to start your call",
   greeting: "Welcome to ROOMLY",
   requesting: "Requesting microphone access",
-  recording: "Listening · Tap to end your call",
+  recording: "Listening · Tap stop to send your request",
   processing: "Finishing your recording",
   recorded: "Recording complete",
   uploading: "Sending your recording",
@@ -27,6 +27,12 @@ export function CallStatus({ status, errorMessage, retrying = false }) {
         )}
         {STATUS_LABELS[status]}
       </p>
+      {status === "recording" && (
+        <p className="call-status__hint">
+          When you’re finished speaking, tap the square button. We’ll send your
+          request automatically.
+        </p>
+      )}
       {errorMessage && (
         <div className="call-status__error" role="alert">
           <p>{errorMessage}</p>
