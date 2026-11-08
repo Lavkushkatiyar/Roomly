@@ -644,6 +644,13 @@ Provider interactions are separated from business logic. Provider failures, inva
 
 The current implementation serializes Gnani requests and retries rate-limit responses plus transient 502/503/504 gateway errors. The concurrency lock is process-local, not a distributed lock shared by multiple backend workers.
 
+## 8.6 Terminal conversation logs
+
+The backend writes conversation-stage progress to the terminal, tagged with the
+conversation ID and elapsed time where applicable. Logs identify when a turn is
+received, STT completes, the guest message is persisted, reasoning returns an
+intent, TTS completes, requests are committed, and the turn is ready. Transcript
+and generated response text are not included.
+
 # 9. Current Limitations
 - ROOMLY is a browser call simulator, not a PBX/SIP or hotel telephone-system integration.
-

@@ -1,4 +1,5 @@
 import logging
+import time
 import uuid
 
 from sqlalchemy.orm import Session
@@ -39,12 +40,34 @@ class VoiceIngestionServices:
         guest_language: GuestLanguage,
         conversation_id: uuid.UUID | None = None,
     ) -> RawInput:
+        started_at = time.perf_counter()
+        logger.info(
+            "STT layer started | conversation_id=%s room_id=%s language=%s "
+            "audio_bytes=%d",
+            conversation_id,
+            room_id,
+            guest_language.value,
+            len(audio),
+        )
         transcription = await self.stt_provider.transcribe(
             audio=audio, language=guest_language.value, filename=filename
         )
         transcript = transcription.text.strip()
+        logger.info(
+            "STT layer passed | conversation_id=%s provider=%s provider_request_id=%s "
+            "transcript_chars=%d duration_ms=%.0f",
+            conversation_id,
+            transcription.provider,
+            transcription.request_id,
+            len(transcript),
+            (time.perf_counter() - started_at) * 1000,
+        )
 
         if not transcript:
+            logger.warning(
+                "STT layer returned an empty transcript | conversation_id=%s",
+                conversation_id,
+            )
             raise ValueError("Transcription can not be empty")
 
         raw_input_data = RawInputCreate(
@@ -60,7 +83,8 @@ class VoiceIngestionServices:
         )
 
         logger.info(
-            "Voice ingestion completed for room_id=%s, raw_input_id=%s",
+            "Guest message persisted | conversation_id=%s room_id=%s raw_input_id=%s",
+            conversation_id,
             room_id,
             raw_input.id,
         )
@@ -133,10 +157,27 @@ class VoiceIngestionServices:
             conversation_id=conversation_id,
         )
 
+        reasoning_started_at = time.perf_counter()
+        logger.info(
+            "Reasoning layer started | conversation_id=%s provider=%s "
+            "language=%s context_messages=%d",
+            conversation_id,
+            type(self.reasoning_provider).__name__,
+            guest_language.value,
+            len(context),
+        )
         turn = await self.reasoning_provider.process_turn(
             transcript=raw_input.transcript,
             language=raw_input.guest_language.value,
             context=context,
+        )
+        logger.info(
+            "Reasoning layer passed | conversation_id=%s intent=%s "
+            "proposed_tasks=%d duration_ms=%.0f",
+            conversation_id,
+            turn.intent.value,
+            len(turn.tasks),
+            (time.perf_counter() - reasoning_started_at) * 1000,
         )
 
         return ConversationTurnProcessingResult(

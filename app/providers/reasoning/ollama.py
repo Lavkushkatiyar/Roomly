@@ -1,3 +1,5 @@
+import logging
+
 import httpx
 
 from app.providers.reasoning.prompts import (
@@ -8,6 +10,8 @@ from app.providers.reasoning.prompts import (
 from app.schemas.assistant import AssistantResponse
 from app.schemas.conversation_turn import ConversationTurnResult
 from app.schemas.task_extraction import TaskExtractionResult
+
+logger = logging.getLogger(__name__)
 
 
 class OllamaProvider:
@@ -108,7 +112,6 @@ class OllamaProvider:
         async with httpx.AsyncClient(
             timeout=self.timeout,
         ) as client:
-            print(payload)
             response = await client.post(
                 self.url,
                 json=payload,
@@ -168,6 +171,9 @@ class OllamaProvider:
             },
         }
 
+        logger.info(
+            "Reasoning provider request started | provider=ollama model=%s", self.model
+        )
         async with httpx.AsyncClient(
             timeout=self.timeout,
         ) as client:
