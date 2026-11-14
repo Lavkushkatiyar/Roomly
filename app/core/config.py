@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     OPENROUTER_API_KEY: str = "your-api-key"
     OPENROUTER_BASE_URL: str = "https://openrouter.ai/api/v1"
     CORS_ORIGINS: list[str] = ["http://localhost:5173"]
+    REDIS_URL: str = "ur redis url"
 
     model_config = SettingsConfigDict(
         env_file=".env",
