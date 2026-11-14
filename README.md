@@ -1,4 +1,3 @@
-
 # ROOMLY — AI Voice-First Hotel Concierge
 
 **A multilingual, voice-first hotel concierge powered by Gnani AI.**
@@ -18,7 +17,11 @@ Gnani AI powers ROOMLY's voice interaction through two technologies:
 - **Gnani Prisma (STT):** Converts guest speech into text.
 - **Gnani Timbre (TTS):** Converts assistant responses into spoken audio.
 
-A separate reasoning provider handles conversation understanding and service-request generation.
+## Project Pitch
+
+Read the [ROOMLY Solution Pitch](docs/SOLUTION_PITCH.md) for
+the problem statement, proposed solution, target users,
+Gnani AI integrations, and engineering overview.|
 
 ## Documentation
 
