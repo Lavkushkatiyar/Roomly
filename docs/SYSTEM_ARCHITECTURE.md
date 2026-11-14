@@ -132,6 +132,20 @@ The frontend submits multipart turn data. The conversation response carries
 the `conversation_id`, whether the conversation ended, raw transcript, typed
 turn and audio encoded as base64 with a content type.
 
+### API rate limiting
+
+FastAPI applies a global IP-based rate limit of 5 requests per 60-second
+fixed window using a reusable dependency backed by Redis. The dependency
+increments a per-IP, per-scope counter with `INCR` and sets its expiry with
+`EXPIRE` on the first request in the window. It can also be configured with
+different request limits, window lengths and scopes for endpoint-level
+dependencies.
+
+Requests over the limit receive HTTP 429 with a `Retry-After` header derived
+from the counter's remaining TTL. Redis operation errors are logged and fail
+open so that Redis outages do not block API requests. The Redis client is
+provided through a FastAPI dependency and closed after use.
+
 ## 10. End-to-end guest interaction
 
 ```mermaid
@@ -265,7 +279,9 @@ flowchart TD
     InstallNpm --> Eslint[npm run lint]
     Eslint --> Vite[npm run build]
     Quality --> Postgres[Start PostgreSQL 16 service]
+    Quality --> Redis[Start Redis 7 service]
     Postgres --> InstallPython[Install uv and Python 3.12]
+    Redis --> InstallPython
     InstallPython --> Pytest[uv run pytest]
     Pytest --> RuffCheck[ruff check]
     RuffCheck --> RuffFormat[ruff format --check]
