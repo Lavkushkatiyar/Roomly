@@ -11,7 +11,6 @@ Hotel guests often have to call reception, navigate phone menus, or wait for sta
 
 **No service request is created without the guest's explicit confirmation.**
 
-
 # Gnani AI — Powering the Voice Experience
 
 Gnani AI powers ROOMLY's voice interaction through two technologies:
@@ -20,6 +19,18 @@ Gnani AI powers ROOMLY's voice interaction through two technologies:
 - **Gnani Timbre (TTS):** Converts assistant responses into spoken audio.
 
 A separate reasoning provider handles conversation understanding and service-request generation.
+
+## Documentation
+
+| Document | Description |
+|---|---|
+| [Technical Guide](docs/TECHNICAL_GUIDE.md) | Technology stack, versions, architecture, setup, testing, and development workflow. |
+| [Gnani Prisma STT](docs/GNANI_PRISMA_STT.md) | Prisma integration, API configuration, audio processing, and language mapping. |
+| [Gnani Timbre TTS](docs/GNANI_TIMBRE_TTS.md) | Timbre integration, model configuration, voice selection, and audio output. |
+| [Reasoning Provider](docs/REASONING_PROVIDER.md) | Provider abstraction, Ollama, OpenRouter, and structured AI responses. |
+| [System Architecture](docs/SYSTEM_ARCHITECTURE.md) | Application layers, request lifecycle, data flow, and service boundaries. |
+| [Docker Guide](docs/DOCKER.md) | Build and run the frontend and backend containers with Docker Compose. |
+
 
 ## Gnani Prisma — Speech-to-Text
 
@@ -142,16 +153,6 @@ ROOMLY is developed incrementally, with clear service boundaries and automated v
 - Ruff and Pyright support code quality.
 - GitHub Actions validates frontend and backend changes.
 
-## Documentation
-
-| Document | Description |
-|---|---|
-| [Technical Guide](docs/TECHNICAL_GUIDE.md) | Technology stack, versions, architecture, setup, testing, and development workflow. |
-| [Gnani Prisma STT](docs/GNANI_PRISMA_STT.md) | Prisma integration, API configuration, audio processing, and language mapping. |
-| [Gnani Timbre TTS](docs/GNANI_TIMBRE_TTS.md) | Timbre integration, model configuration, voice selection, and audio output. |
-| [Reasoning Provider](docs/REASONING_PROVIDER.md) | Provider abstraction, Ollama, OpenRouter, and structured AI responses. |
-| [System Architecture](docs/SYSTEM_ARCHITECTURE.md) | Application layers, request lifecycle, data flow, and service boundaries. |
-| [Docker Guide](docs/DOCKER.md) | Build and run the frontend and backend containers with Docker Compose. |
 
 
 ## Project Scope
