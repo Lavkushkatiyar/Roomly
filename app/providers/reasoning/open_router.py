@@ -1,3 +1,5 @@
+import logging
+
 import httpx
 
 from app.providers.reasoning.prompts import (
@@ -8,6 +10,8 @@ from app.providers.reasoning.prompts import (
 from app.schemas.assistant import AssistantResponse
 from app.schemas.conversation_turn import ConversationTurnResult
 from app.schemas.task_extraction import TaskExtractionResult
+
+logger = logging.getLogger(__name__)
 
 
 class OpenRouterProvider:
@@ -58,8 +62,10 @@ class OpenRouterProvider:
                 json=payload,
             )
             if response.is_error:
-                print("OpenRouter status:", response.status_code)
-                print("OpenRouter error:", response.text)
+                logger.error(
+                    "Reasoning provider request failed | provider=openrouter status=%s",
+                    response.status_code,
+                )
 
             response.raise_for_status()
 

@@ -29,7 +29,7 @@ Edit `.env` and set:
 - `OLLAMA_BASE_URL`: URL reachable from the backend container when using Ollama.
 - `OPENROUTER_API_KEY`: required only when using OpenRouter.
 
-Do not commit `.env`. The committed `.env.example` contains placeholders only.
+The committed `.env.example` contains placeholders only.
 
 ### PostgreSQL connection
 

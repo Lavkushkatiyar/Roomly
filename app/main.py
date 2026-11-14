@@ -1,18 +1,26 @@
 import logging
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from redis.asyncio import Redis
 
 from app.api.router import api_router
 from app.core.config import settings
 from app.core.lifespan import lifespan
 from app.core.logging import setup_logging
+from app.core.redis import get_redis
+from app.dependancies.rate_limiter import rate_limit
 
 setup_logging()
 logger = logging.getLogger(__name__)
 
 
-app = FastAPI(lifespan=lifespan, title=settings.app_name, version=settings.app_version)
+app = FastAPI(
+    lifespan=lifespan,
+    title=settings.app_name,
+    version=settings.app_version,
+    dependencies=[Depends(rate_limit(scope="global"))],
+)
 app.include_router(api_router)
 
 
@@ -23,6 +31,14 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.get("/redis-health", dependencies=[Depends(rate_limit(scope="provider"))])
+async def redis_health(
+    redis: Redis = Depends(get_redis),
+):
+    await redis.ping()
+    return {"redis": "connected"}
 
 
 @app.get("/")

@@ -13,6 +13,7 @@ dependencies = [
     "psycopg2-binary>=2.9.13",
     "psycopg[binary]>=3.3.6",
     "pydantic-settings>=2.15.0",
+    "redis>=8.1.0",
     "respx>=0.23.1",
     "schemathesis>=4.32.7",
     "sqlalchemy>=2.1.6",

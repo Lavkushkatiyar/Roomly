@@ -1,5 +1,6 @@
 import base64
 import logging
+import time
 import uuid
 
 import httpx
@@ -218,8 +219,17 @@ async def _process_audio_turn(
     reasoning_provider: OllamaProvider,
     tts_provider: GnaniTTS,
 ) -> ConversationTurnResponse:
+    turn_started_at = time.perf_counter()
     try:
         audio_data = await audio.read()
+        logger.info(
+            "Conversation turn received | conversation_id=%s room_id=%s "
+            "language=%s audio_bytes=%d",
+            conversation.id,
+            conversation.room_id,
+            conversation.guest_language.value,
+            len(audio_data),
+        )
         ingestion_service = VoiceIngestionServices(
             stt_provider=stt_provider,
             reasoning_provider=reasoning_provider,
@@ -233,13 +243,19 @@ async def _process_audio_turn(
             conversation_id=conversation.id,
         )
     except httpx.HTTPError as exc:
-        logger.exception("Conversation speech or reasoning provider failed.")
+        logger.exception(
+            "Conversation speech or reasoning provider failed | conversation_id=%s",
+            conversation.id,
+        )
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="Conversation processing service failed.",
         ) from exc
     except GnaniAPIError as exc:
-        logger.exception("Conversation speech provider failed.")
+        logger.exception(
+            "Conversation speech provider failed | conversation_id=%s",
+            conversation.id,
+        )
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="Conversation processing service failed.",
@@ -325,22 +341,48 @@ async def _process_audio_turn(
         pending_raw_input_id = None
 
     try:
+        tts_started_at = time.perf_counter()
+        logger.info(
+            "TTS layer started | conversation_id=%s language=%s intent=%s",
+            conversation.id,
+            conversation.guest_language.value,
+            turn.intent.value,
+        )
         speech = await TTSService(provider=tts_provider).generate_speech(
             assistant_response=turn.assistant_response,
         )
+        logger.info(
+            "TTS layer passed | conversation_id=%s audio_bytes=%d duration_ms=%.0f",
+            conversation.id,
+            len(speech.audio_data),
+            (time.perf_counter() - tts_started_at) * 1000,
+        )
     except (GnaniAPIError, httpx.HTTPError, ValueError) as exc:
-        logger.exception("Conversation response speech generation failed.")
+        logger.exception(
+            "Conversation response speech generation failed | conversation_id=%s",
+            conversation.id,
+        )
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="Speech generation service failed.",
         ) from exc
 
     if turn.intent == ConversationIntent.CONFIRMATION and turn.tasks:
+        logger.info(
+            "Service-request persistence started | conversation_id=%s request_count=%d",
+            conversation.id,
+            len(turn.tasks),
+        )
         ServiceRequestServices.create_service_requests(
             db=db,
             raw_input_id=confirmed_raw_input_id or result.raw_input.id,
             requests=turn.tasks,
             commit=False,
+        )
+        logger.info(
+            "Service-request persistence staged | conversation_id=%s request_count=%d",
+            conversation.id,
+            len(turn.tasks),
         )
 
     ConversationServices.save_turn_message(
@@ -350,6 +392,19 @@ async def _process_audio_turn(
         pending_tasks=pending_tasks,
         pending_raw_input_id=pending_raw_input_id,
     )
+    logger.info(
+        "Assistant turn persisted | conversation_id=%s intent=%s pending_tasks=%d",
+        conversation.id,
+        turn.intent.value,
+        len(pending_tasks),
+    )
+    if turn.intent == ConversationIntent.CONFIRMATION and turn.tasks:
+        logger.info(
+            "Confirmed service requests committed | conversation_id=%s "
+            "request_count=%d",
+            conversation.id,
+            len(turn.tasks),
+        )
 
     if conversation_ended:
         ended_conversation = ConversationServices.end_conversation(
@@ -361,7 +416,16 @@ async def _process_audio_turn(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="Conversation could not be ended.",
             )
+        logger.info("Conversation closed | conversation_id=%s", conversation.id)
 
+    logger.info(
+        "Conversation turn ready | conversation_id=%s intent=%s ended=%s "
+        "duration_ms=%.0f",
+        conversation.id,
+        turn.intent.value,
+        conversation_ended,
+        (time.perf_counter() - turn_started_at) * 1000,
+    )
     return ConversationTurnResponse(
         conversation_id=conversation.id,
         conversation_ended=conversation_ended,
