@@ -1,82 +1,93 @@
 
-name: CI
+  name: CI
 
-on:
-  push:
-  pull_request:
+  on:
+    push:
+    pull_request:
 
-jobs:
-  frontend:
-    runs-on: ubuntu-latest
+  jobs:
+    frontend:
+      runs-on: ubuntu-latest
 
-    defaults:
-      run:
-        working-directory: frontend
+      defaults:
+        run:
+          working-directory: frontend
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      steps:
+        - name: Checkout repository
+          uses: actions/checkout@v4
 
-      - name: Set up Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
+        - name: Set up Node
+          uses: actions/setup-node@v4
+          with:
+            node-version: 22
+            cache: npm
+            cache-dependency-path: frontend/package-lock.json
 
-      - name: Install frontend dependencies
-        run: npm ci
+        - name: Install frontend dependencies
+          run: npm ci
 
-      - name: Lint frontend
-        run: npm run lint
+        - name: Lint frontend
+          run: npm run lint
 
-      - name: Build frontend
-        run: npm run build
+        - name: Build frontend
+          run: npm run build
 
-  quality:
-    runs-on: ubuntu-latest
+    quality:
+      runs-on: ubuntu-latest
 
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: roomly_test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+      services:
+        postgres:
+          image: postgres:16
+          env:
+            POSTGRES_USER: postgres
+            POSTGRES_PASSWORD: postgres
+            POSTGRES_DB: roomly_test
+          ports:
+            - 5432:5432
+          options: >-
+            --health-cmd "pg_isready -U postgres"
+            --health-interval 10s
+            --health-timeout 5s
+            --health-retries 5
 
-    env:
-      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/roomly_test
+        redis:
+          image: redis:7-alpine
+          ports:
+            - 6379:6379
+          options: >-
+            --health-cmd "redis-cli ping"
+            --health-interval 10s
+            --health-timeout 5s
+            --health-retries 5
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      env:
+        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/roomly_test
+        REDIS_URL: redis://localhost:6379
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@v6
-        with:
-          enable-cache: true
+      steps:
+        - name: Checkout repository
+          uses: actions/checkout@v4
 
-      - name: Set up Python
-        run: uv python install 3.12
+        - name: Install uv
+          uses: astral-sh/setup-uv@v6
+          with:
+            enable-cache: true
 
-      - name: Install dependencies
-        run: uv sync --locked
+        - name: Set up Python
+          run: uv python install 3.12
 
-      - name: Run tests
-        run: uv run pytest
+        - name: Install dependencies
+          run: uv sync --locked
 
-      - name: Check lint
-        run: uv run ruff check .
+        - name: Run tests
+          run: uv run pytest
 
-      - name: Check formatting
-        run: uv run ruff format --check .
+        - name: Check lint
+          run: uv run ruff check .
 
-      - name: Check types
-        run: uv run pyright
+        - name: Check formatting
+          run: uv run ruff format --check .
+
+        - name: Check types
+          run: uv run pyright
