@@ -189,22 +189,18 @@ function DemoVideo({ src }) {
   }
 
   return (
-    <div
-      className="guest-onboarding__video-placeholder"
-      role="group"
-      aria-label="ROOMLY voice concierge walkthrough"
-    >
-      <p className="guest-onboarding__video-note">
-        Demonstration video coming soon
-      </p>
-      <ol className="guest-onboarding__workflow">
-        <li>Speak</li>
-        <li>ROOMLY interprets</li>
-        <li>Review and confirm</li>
-        <li>Request is submitted</li>
-        <li>Track your request</li>
-      </ol>
-    </div>
+  <div className="guest-onboarding__video">
+  <video
+    className="guest-onboarding__video-player"
+    src="https://restless-disk-98b0.worklavkush.workers.dev/"
+    controls
+    playsInline
+    preload="metadata"
+    aria-label="ROOMLY voice concierge walkthrough"
+  >
+    Your browser does not support video playback.
+  </video>
+</div>
   );
 }
 
