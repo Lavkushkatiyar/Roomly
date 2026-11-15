@@ -11,8 +11,8 @@ logger = logging.getLogger(__name__)
 
 def rate_limit(
     *,
-    max_requests: int = 5,
-    window_seconds: int = 60,
+    max_requests: int = 10,
+    window_seconds: int = 40,
     scope: str = "global",
 ):
     async def dependency(
