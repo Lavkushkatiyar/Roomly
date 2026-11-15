@@ -10,10 +10,10 @@ import { useConversationTurn } from "../hooks/useConversationTurn";
 import { useServiceRequests } from "../hooks/useServiceRequests";
 import { playAudioBlob } from "../utils/audioPlayback";
 import { playGreetingChime } from "../utils/greetingChime";
-import {
-  synthesizeNaturalMessage,
-} from "../utils/naturalSpeech";
+import { synthesizeNaturalMessage } from "../utils/naturalSpeech";
 import "./guest-call.css";
+
+const MINIMUM_GREETING_RING_MS = 600;
 
 function formatRequestLabel(value) {
   return value
@@ -35,10 +35,12 @@ function formatRequestTime(value) {
   })}`;
 }
 
-export function GuestCallScreen({ roomId, guestLanguage, greetOnEntry = false }) {
+export function GuestCallScreen({ roomId, guestLanguage }) {
   const [isGreeting, setIsGreeting] = useState(false);
   const [greetingError, setGreetingError] = useState(null);
   const greetingControllerRef = useRef(null);
+  const greetingAudioRef = useRef(null);
+  const greetingSynthesisRef = useRef(null);
   const conversationStartedRef = useRef(false);
   const {
     status: recorderStatus,
@@ -72,6 +74,39 @@ export function GuestCallScreen({ roomId, guestLanguage, greetOnEntry = false })
   });
   const submittedBlobRef = useRef(null);
 
+  useEffect(() => {
+    const controller = new AbortController();
+    const synthesis = synthesizeNaturalMessage(guestLanguage, "greeting", {
+      signal: controller.signal,
+    });
+    greetingSynthesisRef.current = synthesis;
+    synthesis
+      .then((audio) => {
+        if (!controller.signal.aborted) {
+          greetingAudioRef.current = audio;
+        }
+      })
+      .catch((error) => {
+        if (!controller.signal.aborted) {
+          console.warn("Could not prepare the guest greeting.", error);
+        }
+      })
+      .finally(() => {
+        if (greetingSynthesisRef.current === synthesis) {
+          greetingSynthesisRef.current = null;
+        }
+      });
+
+    return () => {
+      controller.abort();
+      greetingAudioRef.current = null;
+      if (greetingSynthesisRef.current === synthesis) {
+        greetingSynthesisRef.current = null;
+      }
+      greetingControllerRef.current?.abort();
+    };
+  }, [guestLanguage]);
+
   const startConversationWithGreeting = useCallback(async () => {
     if (conversationStartedRef.current) {
       return;
@@ -85,6 +120,7 @@ export function GuestCallScreen({ roomId, guestLanguage, greetOnEntry = false })
     setGreetingError(null);
 
     const ringController = new AbortController();
+    const ringStartedAt = performance.now();
     const ringPlayback = playGreetingChime({
       signal: ringController.signal,
     }).catch((error) => {
@@ -94,9 +130,28 @@ export function GuestCallScreen({ roomId, guestLanguage, greetOnEntry = false })
     });
     let greetingAudio;
     try {
-      greetingAudio = await synthesizeNaturalMessage(guestLanguage, "greeting", {
-        signal: controller.signal,
-      });
+      greetingAudio = greetingAudioRef.current;
+      if (!greetingAudio && greetingSynthesisRef.current) {
+        try {
+          greetingAudio = await greetingSynthesisRef.current;
+        } catch {
+          if (controller.signal.aborted) {
+            return;
+          }
+        }
+      }
+
+      if (!greetingAudio && !controller.signal.aborted) {
+        greetingAudio = await synthesizeNaturalMessage(
+          guestLanguage,
+          "greeting",
+          { signal: controller.signal },
+        );
+      }
+
+      if (greetingAudio && !controller.signal.aborted) {
+        greetingAudioRef.current = greetingAudio;
+      }
     } catch (error) {
       if (controller.signal.aborted) {
         return;
@@ -108,6 +163,13 @@ export function GuestCallScreen({ roomId, guestLanguage, greetOnEntry = false })
           : "Greeting playback failed.",
       );
     } finally {
+      const remainingRingDuration =
+        MINIMUM_GREETING_RING_MS - (performance.now() - ringStartedAt);
+      if (remainingRingDuration > 0 && !controller.signal.aborted) {
+        await new Promise((resolve) =>
+          window.setTimeout(resolve, remainingRingDuration),
+        );
+      }
       ringController.abort();
       await ringPlayback;
     }
@@ -138,25 +200,6 @@ export function GuestCallScreen({ roomId, guestLanguage, greetOnEntry = false })
     setIsGreeting(false);
     await startRecording();
   }, [guestLanguage, startRecording]);
-
-  useEffect(() => {
-    if (!greetOnEntry) {
-      return undefined;
-    }
-
-    let cancelled = false;
-    const timer = window.setTimeout(() => {
-      if (!cancelled) {
-        void startConversationWithGreeting();
-      }
-    }, 0);
-
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timer);
-      greetingControllerRef.current?.abort();
-    };
-  }, [greetOnEntry, startConversationWithGreeting]);
 
   useEffect(() => {
     if (ingestionStatus === "conversation_ended") {
