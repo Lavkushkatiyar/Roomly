@@ -389,6 +389,51 @@
   }
 }
 
+@media (max-height: 42rem) {
+  .room-entry__content {
+    min-height: 0;
+    padding-block: 0;
+  }
+
+  .room-entry__eyebrow {
+    margin-bottom: 0.375rem;
+  }
+
+  .room-entry h1 {
+    font-size: clamp(2rem, 5vw, 2.5rem);
+  }
+
+  .room-entry__intro {
+    margin-top: 0.25rem;
+    margin-bottom: 0.75rem;
+    line-height: 1.4;
+  }
+
+  .room-entry__card {
+    padding-block: 0.75rem;
+  }
+
+  .room-entry__form {
+    gap: 0.625rem;
+  }
+
+  .room-entry__control,
+  .room-entry__field input,
+  .room-entry__field select,
+  .room-entry__submit {
+    min-height: 2.75rem;
+    height: 2.75rem;
+  }
+
+  .room-entry__help {
+    margin-top: 0.5rem;
+  }
+
+  .room-entry__connection {
+    margin-top: 0.5rem;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .room-entry__control,
   .room-entry__field input,
