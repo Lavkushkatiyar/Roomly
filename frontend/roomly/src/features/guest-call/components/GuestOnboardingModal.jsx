@@ -6,29 +6,40 @@ function getMicrophoneReadiness(permissionState, hasInputDevice) {
   if (permissionState === "denied") {
     return {
       state: "error",
+      permissionState,
       label: "Microphone access is blocked in browser settings",
     };
   }
 
   if (permissionState === "granted") {
     return hasInputDevice
-      ? { state: "ready", label: "Microphone ready" }
-      : { state: "error", label: "No microphone detected" };
+      ? { state: "ready", permissionState, label: "Microphone ready" }
+      : {
+          state: "error",
+          permissionState,
+          label: "No microphone detected",
+        };
   }
 
   if (permissionState === "prompt") {
     return hasInputDevice
-      ? { state: "waiting", label: "Microphone detected · access needed" }
+      ? {
+          state: "waiting",
+          permissionState,
+          label: "Microphone detected · access needed",
+        }
       : {
           state: "waiting",
+          permissionState,
           label: "Microphone access will be checked when you begin",
         };
   }
 
   return hasInputDevice
-    ? { state: "waiting", label: "Microphone detected" }
+    ? { state: "waiting", permissionState, label: "Microphone detected" }
     : {
         state: "waiting",
+        permissionState,
         label: "Microphone readiness will be checked when you begin",
       };
 }
@@ -36,74 +47,130 @@ function getMicrophoneReadiness(permissionState, hasInputDevice) {
 function useMicrophoneReadiness() {
   const [readiness, setReadiness] = useState({
     state: "checking",
+    permissionState: "unknown",
     label: "Checking microphone status",
   });
+  const [isRequesting, setIsRequesting] = useState(false);
+  const permissionStatusRef = useRef(null);
+
+  const refreshReadiness = useCallback(async () => {
+    const mediaDevices = navigator.mediaDevices;
+
+    if (!mediaDevices?.getUserMedia) {
+      const unsupported = {
+        state: "error",
+        permissionState: "unknown",
+        label: "Microphone recording is not supported by this browser",
+      };
+      setReadiness(unsupported);
+      return unsupported;
+    }
+
+    let permissionState = "unknown";
+    if (navigator.permissions?.query) {
+      try {
+        const permissionStatus = await navigator.permissions.query({
+          name: "microphone",
+        });
+        permissionStatusRef.current = permissionStatus;
+        permissionState = permissionStatus.state;
+      } catch {
+        permissionState = "unknown";
+      }
+    }
+
+    try {
+      const devices = await mediaDevices.enumerateDevices();
+      const currentReadiness = getMicrophoneReadiness(
+        permissionState,
+        devices.some((device) => device.kind === "audioinput"),
+      );
+      setReadiness(currentReadiness);
+      return currentReadiness;
+    } catch {
+      const currentReadiness = {
+        state: permissionState === "denied" ? "error" : "waiting",
+        permissionState,
+        label:
+          permissionState === "denied"
+            ? "Microphone access is blocked in browser settings"
+            : "Microphone readiness will be checked when you begin",
+      };
+      setReadiness(currentReadiness);
+      return currentReadiness;
+    }
+  }, []);
+
+  const requestMicrophoneAccess = useCallback(async () => {
+    if (
+      readiness.permissionState === "denied" ||
+      !navigator.mediaDevices?.getUserMedia
+    ) {
+      return;
+    }
+
+    setIsRequesting(true);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const hasAudioTrack = stream.getAudioTracks().length > 0;
+      stream.getTracks().forEach((track) => track.stop());
+
+      if (hasAudioTrack) {
+        setReadiness({
+          state: "ready",
+          permissionState: "granted",
+          label: "Microphone ready",
+        });
+      } else {
+        setReadiness({
+          state: "error",
+          permissionState: "granted",
+          label: "No microphone detected",
+        });
+      }
+    } catch (error) {
+      const denied = ["NotAllowedError", "SecurityError"].includes(error?.name);
+      const missing = error?.name === "NotFoundError";
+      setReadiness({
+        state: "error",
+        permissionState: denied ? "denied" : readiness.permissionState,
+        label: denied
+          ? "Access blocked · allow microphone in browser settings"
+          : missing
+            ? "No microphone detected"
+            : "Could not check microphone · try again",
+      });
+    } finally {
+      setIsRequesting(false);
+    }
+  }, [readiness.permissionState]);
 
   useEffect(() => {
     let active = true;
-    let permissionStatus;
-    const mediaDevices = navigator.mediaDevices;
-
     const updateReadiness = async () => {
-      if (!mediaDevices?.getUserMedia) {
-        setReadiness({
-          state: "error",
-          label: "Microphone recording is not supported by this browser",
-        });
+      const currentReadiness = await refreshReadiness();
+      if (!active) {
         return;
       }
-
-      let permissionState = "unknown";
-      if (navigator.permissions?.query) {
-        try {
-          permissionStatus = await navigator.permissions.query({
-            name: "microphone",
-          });
-          if (!active) {
-            return;
-          }
-          permissionState = permissionStatus.state;
-          permissionStatus.onchange = updateReadiness;
-        } catch {
-          permissionState = "unknown";
-        }
+      if (permissionStatusRef.current) {
+        permissionStatusRef.current.onchange = () => {
+          void refreshReadiness();
+        };
       }
-
-      try {
-        const devices = await mediaDevices.enumerateDevices();
-        const hasInputDevice = devices.some(
-          (device) => device.kind === "audioinput",
-        );
-        if (active) {
-          setReadiness(
-            getMicrophoneReadiness(permissionState, hasInputDevice),
-          );
-        }
-      } catch {
-        if (active) {
-          setReadiness({
-            state: permissionState === "denied" ? "error" : "waiting",
-            label:
-              permissionState === "denied"
-                ? "Microphone access is blocked in browser settings"
-                : "Microphone readiness will be checked when you begin",
-          });
-        }
-        return;
-      }
+      return currentReadiness;
     };
 
     void updateReadiness();
 
     return () => {
       active = false;
-      if (permissionStatus) {
-        permissionStatus.onchange = null;
+      if (permissionStatusRef.current) {
+        permissionStatusRef.current.onchange = null;
       }
     };
-  }, []);
+  }, [refreshReadiness]);
 
-  return readiness;
+  return { readiness, isRequesting, requestMicrophoneAccess };
 }
 
 function DemoVideo({ src }) {
@@ -143,7 +210,7 @@ function DemoVideo({ src }) {
 
 export function GuestOnboardingModal({
   onSkip,
-  onBegin,
+  onEnter,
   onClosed,
   errorMessage,
   videoSrc = null,
@@ -155,7 +222,24 @@ export function GuestOnboardingModal({
   const closingRef = useRef(false);
   const dismissTimerRef = useRef(null);
   const rememberedChoiceRef = useRef(doNotShowAgain);
-  const readiness = useMicrophoneReadiness();
+  const {
+    readiness,
+    isRequesting,
+    requestMicrophoneAccess,
+  } = useMicrophoneReadiness();
+  const microphoneActionLabel = isRequesting
+    ? "Checking…"
+    : readiness.permissionState === "denied"
+      ? "Permission blocked"
+      : readiness.state === "error"
+        ? readiness.label === "No microphone detected"
+          ? "No microphone"
+          : "Try again"
+        : readiness.state === "ready"
+          ? "Test microphone"
+          : ["prompt", "unknown"].includes(readiness.permissionState)
+            ? "Allow microphone"
+            : "Check microphone";
 
   const dismiss = useCallback(
     (action, rememberChoice) => {
@@ -290,13 +374,27 @@ export function GuestOnboardingModal({
             </span>
             <p>“Could I have fresh towels, please?”</p>
           </div>
-          <span
-            className={`guest-onboarding__mic-status guest-onboarding__mic-status--${readiness.state}`}
-            role="status"
-          >
-            <span aria-hidden="true" />
-            {readiness.label}
-          </span>
+          <div className="guest-onboarding__mic-check">
+            <button
+              className={`guest-onboarding__mic-status guest-onboarding__mic-status--${readiness.state}`}
+              type="button"
+              disabled={
+                isRequesting ||
+                readiness.permissionState === "denied" ||
+                !navigator.mediaDevices?.getUserMedia
+              }
+              onClick={() => void requestMicrophoneAccess()}
+            >
+              <span aria-hidden="true" />
+              {microphoneActionLabel}
+            </button>
+            <p
+              className="guest-onboarding__mic-detail"
+              role={readiness.state === "error" ? "alert" : "status"}
+            >
+              {readiness.label}
+            </p>
+          </div>
         </section>
 
         <div className="guest-onboarding__actions">
@@ -324,9 +422,9 @@ export function GuestOnboardingModal({
             <button
               className="guest-onboarding__begin"
               type="button"
-              onClick={() => dismiss(onBegin, doNotShowAgain)}
+              onClick={() => dismiss(onEnter, doNotShowAgain)}
             >
-              Begin Voice Dial
+              Enter App
               <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
                 <path
                   d="M3.5 10h12m-5-5 5 5-5 5"
@@ -345,7 +443,8 @@ export function GuestOnboardingModal({
           </p>
         )}
         <p className="guest-onboarding__permission-note">
-          Microphone access is only requested when you begin voice interaction.
+          Microphone access is only requested when you allow it here or begin
+          voice interaction.
         </p>
       </section>
     </div>

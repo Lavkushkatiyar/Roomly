@@ -261,9 +261,23 @@
     3px 3px 7px rgb(180 172 160 / 18%),
     -3px -3px 7px rgb(255 255 255 / 82%);
   color: var(--color-secondary);
+  cursor: pointer;
   font-size: 0.58rem;
   font-weight: 600;
   line-height: 1.25;
+}
+
+.guest-onboarding__mic-status:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.guest-onboarding__mic-status:focus-visible {
+  outline: 2px solid var(--color-olive);
+  outline-offset: 3px;
+}
+
+.guest-onboarding__mic-status:disabled {
+  cursor: not-allowed;
 }
 
 .guest-onboarding__mic-status > span {
@@ -280,6 +294,21 @@
 
 .guest-onboarding__mic-status--error {
   color: #8c4c43;
+}
+
+.guest-onboarding__mic-check {
+  display: grid;
+  justify-items: end;
+  gap: 0.25rem;
+}
+
+.guest-onboarding__mic-detail {
+  max-width: 13rem;
+  margin: 0;
+  color: var(--color-secondary);
+  font-size: 0.55rem;
+  line-height: 1.35;
+  text-align: right;
 }
 
 .guest-onboarding__actions {
@@ -439,8 +468,13 @@
     flex-wrap: wrap;
   }
 
-  .guest-onboarding__mic-status {
+  .guest-onboarding__mic-check {
+    justify-items: start;
     margin-left: 3.45rem;
+  }
+
+  .guest-onboarding__mic-detail {
+    text-align: left;
   }
 
   .guest-onboarding__actions {

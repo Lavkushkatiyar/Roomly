@@ -1,4 +1,4 @@
-export function GuestHeader({ roomNumber, onLogOut }) {
+export function GuestHeader({ roomNumber, onLogOut, onOpenGuide }) {
   return (
     <header
       className={`guest-header${roomNumber ? " guest-header--concierge" : ""}`}
@@ -21,6 +21,9 @@ export function GuestHeader({ roomNumber, onLogOut }) {
         <nav className="guest-header__nav" aria-label="Guest concierge">
           <a href="#guest-requests">My Requests</a>
           <a href="#voice-dial">Voice Dial</a>
+          <button type="button" onClick={onOpenGuide}>
+            Help / Guide
+          </button>
         </nav>
       )}
 

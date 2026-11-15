@@ -80,7 +80,12 @@ function ServiceCategory({ name, services }) {
   );
 }
 
-export function GuestCallScreen({ roomId, guestLanguage }) {
+export function GuestCallScreen({
+  roomId,
+  guestLanguage,
+  isGuideOpen = false,
+  onGuideClose,
+}) {
   const [showOnboarding, setShowOnboarding] = useState(
     () => !hasGuestSkippedOnboarding(roomId),
   );
@@ -273,16 +278,11 @@ export function GuestCallScreen({ roomId, guestLanguage }) {
     [roomId],
   );
 
-  const handleOnboardingBegin = useCallback(
+  const handleOnboardingEnter = useCallback(
     (doNotShowAgain) => {
-      if (!rememberOnboardingChoice(doNotShowAgain)) {
-        return false;
-      }
-
-      void startConversationWithGreeting();
-      return true;
+      return rememberOnboardingChoice(doNotShowAgain);
     },
-    [rememberOnboardingChoice, startConversationWithGreeting],
+    [rememberOnboardingChoice],
   );
 
   const handleOnboardingSkip = useCallback(
@@ -290,8 +290,11 @@ export function GuestCallScreen({ roomId, guestLanguage }) {
     [rememberOnboardingChoice],
   );
   const handleOnboardingClosed = useCallback(
-    () => setShowOnboarding(false),
-    [],
+    () => {
+      setShowOnboarding(false);
+      onGuideClose?.();
+    },
+    [onGuideClose],
   );
 
   useEffect(() => {
@@ -543,10 +546,10 @@ export function GuestCallScreen({ roomId, guestLanguage }) {
           </section>
         </div>
       </div>
-      {showOnboarding && (
+      {(showOnboarding || isGuideOpen) && (
         <GuestOnboardingModal
           errorMessage={onboardingError}
-          onBegin={handleOnboardingBegin}
+          onEnter={handleOnboardingEnter}
           onClosed={handleOnboardingClosed}
           onSkip={handleOnboardingSkip}
         />
