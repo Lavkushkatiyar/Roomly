@@ -8,8 +8,11 @@ import { VoiceControl } from "./VoiceControl";
 import { useAudioRecorder } from "../hooks/useAudioRecorder";
 import { useConversationTurn } from "../hooks/useConversationTurn";
 import { useServiceRequests } from "../hooks/useServiceRequests";
+import { playAudioBlob } from "../utils/audioPlayback";
 import { playGreetingChime } from "../utils/greetingChime";
-import { playNaturalMessage } from "../utils/naturalSpeech";
+import {
+  synthesizeNaturalMessage,
+} from "../utils/naturalSpeech";
 import "./guest-call.css";
 
 function formatRequestLabel(value) {
@@ -81,32 +84,51 @@ export function GuestCallScreen({ roomId, guestLanguage, greetOnEntry = false })
     setIsGreeting(true);
     setGreetingError(null);
 
-    try {
-      await playGreetingChime({ signal: controller.signal });
-      if (controller.signal.aborted) {
-        return;
+    const ringController = new AbortController();
+    const ringPlayback = playGreetingChime({
+      signal: ringController.signal,
+    }).catch((error) => {
+      if (!ringController.signal.aborted) {
+        console.warn("Could not play the greeting ring.", error);
       }
-    } catch (error) {
-      if (controller.signal.aborted) {
-        return;
-      }
-
-      console.warn("Could not play the greeting chime.", error);
-    }
-
+    });
+    let greetingAudio;
     try {
-      await playNaturalMessage(guestLanguage, "greeting", {
+      greetingAudio = await synthesizeNaturalMessage(guestLanguage, "greeting", {
         signal: controller.signal,
       });
     } catch (error) {
       if (controller.signal.aborted) {
         return;
       }
+
       setGreetingError(
         error instanceof Error
           ? `Greeting playback failed: ${error.message}`
           : "Greeting playback failed.",
       );
+    } finally {
+      ringController.abort();
+      await ringPlayback;
+    }
+
+    if (controller.signal.aborted) {
+      return;
+    }
+
+    if (greetingAudio) {
+      try {
+        await playAudioBlob(greetingAudio, { signal: controller.signal });
+      } catch (error) {
+        if (controller.signal.aborted) {
+          return;
+        }
+        setGreetingError(
+          error instanceof Error
+            ? `Greeting playback failed: ${error.message}`
+            : "Greeting playback failed.",
+        );
+      }
     }
 
     if (controller.signal.aborted) {
