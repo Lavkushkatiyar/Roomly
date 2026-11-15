@@ -13,6 +13,21 @@
 
 .guest-header--concierge {
   position: fixed;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+}
+
+.guest-header--concierge .guest-header__brand {
+  justify-self: start;
+}
+
+.guest-header--concierge .guest-header__nav {
+  justify-self: center;
+  margin-inline: 0;
+}
+
+.guest-header--concierge .guest-header__account {
+  justify-self: end;
 }
 
 .guest-header__brand {
@@ -174,6 +189,7 @@
   flex-direction: column;
   align-items: center;
   text-align: center;
+  zoom: 0.92;
 }
 
 .greeting {
@@ -624,12 +640,23 @@
     padding-block: 0.3rem;
   }
 
-  .guest-header__nav {
+  .guest-header:has(.guest-header__nav)::after {
     grid-column: 1 / -1;
     grid-row: 2;
-    width: 100%;
+    height: 1.35rem;
+    content: "";
+  }
+
+  .guest-header__nav {
+    grid-column: auto;
+    grid-row: auto;
+    position: absolute;
+    bottom: 0.3rem;
+    left: 50%;
+    width: max-content;
     justify-content: center;
     gap: clamp(0.4rem, 3vw, 1rem);
+    transform: translateX(-50%);
   }
 
   .guest-header__nav a {
