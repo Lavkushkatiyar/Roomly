@@ -171,7 +171,7 @@ async def test_rate_limit_uses_unknown_when_request_has_no_client():
 
     assert result is None
     redis.incr.assert_awaited_once_with(key)
-    redis.expire.assert_awaited_once_with(key, 60)
+    redis.expire.assert_awaited_once_with(key, 40)
 
 
 @pytest.mark.asyncio

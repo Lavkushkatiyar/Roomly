@@ -37,6 +37,7 @@ export function useConversationTurn({
   roomId,
   guestLanguage,
   onResponseFinished,
+  onConfirmed,
 }) {
   const [state, setState] = useState(INITIAL_STATE);
   const submittingRef = useRef(false);
@@ -125,6 +126,13 @@ export function useConversationTurn({
           return;
         }
 
+        if (
+          result.turn.intent === "CONFIRMATION" &&
+          result.turn.tasks.length > 0
+        ) {
+          onConfirmed?.();
+        }
+
         conversationIdRef.current = result.conversation_ended
           ? null
           : result.conversation_id;
@@ -192,7 +200,13 @@ export function useConversationTurn({
         submittingRef.current = false;
       }
     },
-    [createPlaybackController, guestLanguage, onResponseFinished, roomId],
+    [
+      createPlaybackController,
+      guestLanguage,
+      onConfirmed,
+      onResponseFinished,
+      roomId,
+    ],
   );
 
   const playResponse = useCallback(async () => {

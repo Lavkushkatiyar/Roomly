@@ -7,14 +7,80 @@ import { IngestionResults } from "./IngestionResults";
 import { VoiceControl } from "./VoiceControl";
 import { useAudioRecorder } from "../hooks/useAudioRecorder";
 import { useConversationTurn } from "../hooks/useConversationTurn";
+import { useServiceRequests } from "../hooks/useServiceRequests";
+import { playAudioBlob } from "../utils/audioPlayback";
 import { playGreetingChime } from "../utils/greetingChime";
-import { playNaturalMessage } from "../utils/naturalSpeech";
+import { synthesizeNaturalMessage } from "../utils/naturalSpeech";
 import "./guest-call.css";
 
-export function GuestCallScreen({ roomId, guestLanguage, greetOnEntry = false }) {
+const MINIMUM_GREETING_RING_MS = 600;
+const SERVICE_CATEGORIES = [
+  {
+    name: "Housekeeping",
+    services:
+      "Room cleaning, fresh towels, pillow menu, toiletries, laundry, extra bedding, turndown service",
+  },
+  {
+    name: "Dining & Beverages",
+    services:
+      "Breakfast, lunch, dinner, snacks, beverages, bottled water, dietary meals, restaurant reservations",
+  },
+  {
+    name: "Room Assistance",
+    services:
+      "AC, plumbing, electrical, TV, Wi-Fi, door lock, safe and general maintenance",
+  },
+];
+
+function formatRequestLabel(value) {
+  return value
+    .toLowerCase()
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
+function formatRequestTime(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "Submission time unavailable";
+  }
+
+  return `Submitted ${date.toLocaleString(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  })}`;
+}
+
+function ServiceCategory({ name, services }) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <article className="guest-call__service-card">
+      <h3 className="guest-call__service-name">{name}</h3>
+      <p
+        className={`guest-call__service-list${expanded ? " guest-call__service-list--expanded" : ""}`}
+      >
+        {services}
+      </p>
+      <button
+        className="guest-call__service-toggle"
+        type="button"
+        aria-expanded={expanded}
+        onClick={() => setExpanded((current) => !current)}
+      >
+        {expanded ? "Show less" : "Show more"}
+      </button>
+    </article>
+  );
+}
+
+export function GuestCallScreen({ roomId, guestLanguage }) {
   const [isGreeting, setIsGreeting] = useState(false);
   const [greetingError, setGreetingError] = useState(null);
   const greetingControllerRef = useRef(null);
+  const greetingAudioRef = useRef(null);
+  const greetingSynthesisRef = useRef(null);
   const conversationStartedRef = useRef(false);
   const {
     status: recorderStatus,
@@ -28,6 +94,12 @@ export function GuestCallScreen({ roomId, guestLanguage, greetOnEntry = false })
     [startRecording],
   );
   const {
+    requests,
+    status: requestsStatus,
+    errorMessage: requestsError,
+    reload: reloadRequests,
+  } = useServiceRequests(roomId);
+  const {
     status: ingestionStatus,
     errorMessage: ingestionError,
     result,
@@ -38,8 +110,42 @@ export function GuestCallScreen({ roomId, guestLanguage, greetOnEntry = false })
     roomId,
     guestLanguage,
     onResponseFinished: startListeningAfterReply,
+    onConfirmed: reloadRequests,
   });
   const submittedBlobRef = useRef(null);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const synthesis = synthesizeNaturalMessage(guestLanguage, "greeting", {
+      signal: controller.signal,
+    });
+    greetingSynthesisRef.current = synthesis;
+    synthesis
+      .then((audio) => {
+        if (!controller.signal.aborted) {
+          greetingAudioRef.current = audio;
+        }
+      })
+      .catch((error) => {
+        if (!controller.signal.aborted) {
+          console.warn("Could not prepare the guest greeting.", error);
+        }
+      })
+      .finally(() => {
+        if (greetingSynthesisRef.current === synthesis) {
+          greetingSynthesisRef.current = null;
+        }
+      });
+
+    return () => {
+      controller.abort();
+      greetingAudioRef.current = null;
+      if (greetingSynthesisRef.current === synthesis) {
+        greetingSynthesisRef.current = null;
+      }
+      greetingControllerRef.current?.abort();
+    };
+  }, [guestLanguage]);
 
   const startConversationWithGreeting = useCallback(async () => {
     if (conversationStartedRef.current) {
@@ -53,32 +159,78 @@ export function GuestCallScreen({ roomId, guestLanguage, greetOnEntry = false })
     setIsGreeting(true);
     setGreetingError(null);
 
+    const ringController = new AbortController();
+    const ringStartedAt = performance.now();
+    const ringPlayback = playGreetingChime({
+      signal: ringController.signal,
+    }).catch((error) => {
+      if (!ringController.signal.aborted) {
+        console.warn("Could not play the greeting ring.", error);
+      }
+    });
+    let greetingAudio;
     try {
-      await playGreetingChime({ signal: controller.signal });
-      if (controller.signal.aborted) {
-        return;
+      greetingAudio = greetingAudioRef.current;
+      if (!greetingAudio && greetingSynthesisRef.current) {
+        try {
+          greetingAudio = await greetingSynthesisRef.current;
+        } catch {
+          if (controller.signal.aborted) {
+            return;
+          }
+        }
+      }
+
+      if (!greetingAudio && !controller.signal.aborted) {
+        greetingAudio = await synthesizeNaturalMessage(
+          guestLanguage,
+          "greeting",
+          { signal: controller.signal },
+        );
+      }
+
+      if (greetingAudio && !controller.signal.aborted) {
+        greetingAudioRef.current = greetingAudio;
       }
     } catch (error) {
       if (controller.signal.aborted) {
         return;
       }
 
-      console.warn("Could not play the greeting chime.", error);
-    }
-
-    try {
-      await playNaturalMessage(guestLanguage, "greeting", {
-        signal: controller.signal,
-      });
-    } catch (error) {
-      if (controller.signal.aborted) {
-        return;
-      }
       setGreetingError(
         error instanceof Error
           ? `Greeting playback failed: ${error.message}`
           : "Greeting playback failed.",
       );
+    } finally {
+      const remainingRingDuration =
+        MINIMUM_GREETING_RING_MS - (performance.now() - ringStartedAt);
+      if (remainingRingDuration > 0 && !controller.signal.aborted) {
+        await new Promise((resolve) =>
+          window.setTimeout(resolve, remainingRingDuration),
+        );
+      }
+      ringController.abort();
+      await ringPlayback;
+    }
+
+    if (controller.signal.aborted) {
+      return;
+    }
+
+    if (greetingAudio) {
+      try {
+        await playAudioBlob(greetingAudio, { signal: controller.signal });
+      } catch (error) {
+        if (controller.signal.aborted) {
+          return;
+        }
+        setGreetingError(
+          error instanceof Error
+            ? `Greeting playback failed: ${error.message}`
+            : "Greeting playback failed.",
+        );
+      }
     }
 
     if (controller.signal.aborted) {
@@ -88,25 +240,6 @@ export function GuestCallScreen({ roomId, guestLanguage, greetOnEntry = false })
     setIsGreeting(false);
     await startRecording();
   }, [guestLanguage, startRecording]);
-
-  useEffect(() => {
-    if (!greetOnEntry) {
-      return undefined;
-    }
-
-    let cancelled = false;
-    const timer = window.setTimeout(() => {
-      if (!cancelled) {
-        void startConversationWithGreeting();
-      }
-    }, 0);
-
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timer);
-      greetingControllerRef.current?.abort();
-    };
-  }, [greetOnEntry, startConversationWithGreeting]);
 
   useEffect(() => {
     if (ingestionStatus === "conversation_ended") {
@@ -257,11 +390,14 @@ export function GuestCallScreen({ roomId, guestLanguage, greetOnEntry = false })
                 Your Services
               </h2>
             </div>
-            <div className="guest-call__activity-card">
-              <p>
-                The hotel service catalogue is not available yet. Please ask
-                the concierge about available services.
-              </p>
+            <div className="guest-call__service-listing">
+              {SERVICE_CATEGORIES.map((category) => (
+                <ServiceCategory
+                  key={category.name}
+                  name={category.name}
+                  services={category.services}
+                />
+              ))}
             </div>
           </section>
 
@@ -289,12 +425,58 @@ export function GuestCallScreen({ roomId, guestLanguage, greetOnEntry = false })
                 Your Requests
               </h2>
             </div>
-            <div className="guest-call__activity-card">
-              <p>
-                Request history for this room is not available yet. Your
-                submitted requests will appear here when it is supported.
-              </p>
-            </div>
+            {requestsStatus === "loading" && (
+              <div className="guest-call__activity-card" role="status">
+                <p>Loading your requests…</p>
+              </div>
+            )}
+            {requestsStatus === "error" && (
+              <div className="guest-call__activity-card">
+                <p role="alert">{requestsError}</p>
+                <button
+                  className="guest-call__requests-retry"
+                  type="button"
+                  onClick={() => void reloadRequests()}
+                >
+                  Try again
+                </button>
+              </div>
+            )}
+            {requestsStatus === "loaded" && requests.length === 0 && (
+              <div className="guest-call__activity-card">
+                <p>No confirmed requests for this room yet.</p>
+              </div>
+            )}
+            {requestsStatus === "loaded" && requests.length > 0 && (
+              <div className="guest-call__request-list">
+                {requests.map((request) => (
+                  <article
+                    className="guest-call__activity-card guest-call__request-card"
+                    key={request.id}
+                  >
+                    <div className="guest-call__request-meta">
+                      <span className="guest-call__request-category">
+                        {formatRequestLabel(request.category)}
+                      </span>
+                      <span
+                        className={`guest-call__request-status guest-call__request-status--${request.status.toLowerCase()}`}
+                      >
+                        {formatRequestLabel(request.status)}
+                      </span>
+                    </div>
+                    <p className="guest-call__request-summary">
+                      {request.staff_summary}
+                    </p>
+                    <time
+                      className="guest-call__request-time"
+                      dateTime={request.created_at}
+                    >
+                      {formatRequestTime(request.created_at)}
+                    </time>
+                  </article>
+                ))}
+              </div>
+            )}
           </section>
         </div>
       </div>

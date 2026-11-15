@@ -189,7 +189,8 @@
   flex-direction: column;
   align-items: center;
   text-align: center;
-  zoom: 0.92;
+  transform: scale(0.92);
+  transform-origin: center;
 }
 
 .greeting {
@@ -608,6 +609,133 @@
   line-height: 1.6;
 }
 
+.guest-call__service-listing {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.guest-call__service-card {
+  min-width: 0;
+  padding: 0.9rem 1rem;
+  border: 1px solid rgb(255 255 255 / 70%);
+  border-radius: 0.75rem;
+  background: var(--color-background);
+  box-shadow:
+    inset 2px 2px 5px rgb(180 172 160 / 28%),
+    inset -2px -2px 5px rgb(255 255 255 / 90%);
+}
+
+.guest-call__service-name {
+  margin: 0 0 0.35rem;
+  color: var(--color-primary);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.guest-call__service-list {
+  display: -webkit-box;
+  overflow: hidden;
+  margin: 0;
+  color: var(--color-secondary);
+  font-size: 0.82rem;
+  line-height: 1.55;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.guest-call__service-list--expanded {
+  display: block;
+  overflow: visible;
+}
+
+.guest-call__service-toggle {
+  margin-top: 0.35rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-olive);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.guest-call__service-toggle:focus-visible {
+  border-radius: 2px;
+  outline: 2px solid var(--color-olive);
+  outline-offset: 3px;
+}
+
+.guest-call__request-list {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.guest-call__request-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.65rem;
+}
+
+.guest-call__request-category,
+.guest-call__request-status {
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.guest-call__request-category {
+  color: var(--color-olive);
+}
+
+.guest-call__request-status {
+  flex: 0 0 auto;
+  padding: 0.3rem 0.55rem;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  color: var(--color-secondary);
+}
+
+.guest-call__request-status--resolved {
+  border-color: color-mix(in srgb, var(--color-olive) 35%, var(--color-border));
+  color: var(--color-olive);
+}
+
+.guest-call__activity-card .guest-call__request-summary {
+  color: var(--color-primary);
+}
+
+.guest-call__request-time {
+  display: block;
+  margin-top: 0.65rem;
+  color: var(--color-secondary);
+  font-size: 0.72rem;
+}
+
+.guest-call__requests-retry {
+  margin-top: 0.75rem;
+  padding: 0.45rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-primary);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.75rem;
+}
+
+.guest-call__requests-retry:hover {
+  border-color: var(--color-olive);
+}
+
+.guest-call__requests-retry:focus-visible {
+  outline: 2px solid var(--color-olive);
+  outline-offset: 3px;
+}
+
 @keyframes waveform {
   from {
     transform: scaleY(0.3);
@@ -624,6 +752,42 @@
   }
   50% {
     transform: scale(1.025);
+  }
+}
+
+@media (max-width: 680px) {
+  .guest-header--concierge {
+    grid-template-columns: minmax(0, 1fr) auto;
+    min-height: 3.25rem;
+    padding: 0.3rem clamp(1rem, 3vw, 1.5rem);
+    row-gap: 0.2rem;
+  }
+
+  .guest-header--concierge::after {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    height: 1.7rem;
+    content: "";
+  }
+
+  .guest-header--concierge .guest-header__brand {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .guest-header--concierge .guest-header__account {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .guest-header--concierge .guest-header__nav {
+    position: absolute;
+    bottom: 0.3rem;
+    left: 50%;
+    width: max-content;
+    gap: clamp(0.4rem, 3vw, 1rem);
+    margin-inline: 0;
+    transform: translateX(-50%);
   }
 }
 
@@ -752,7 +916,20 @@
     padding-inline: 0.4rem;
     font-size: 0.48rem;
   }
+}
 
+@media (min-width: 361px) and (max-width: 420px) {
+  .guest-header--concierge .guest-header__brand .guest-header__descriptor,
+  .guest-header--concierge .guest-header__brand .guest-header__divider {
+    display: none;
+  }
+}
+
+@media (min-width: 481px) and (max-width: 520px) {
+  .guest-header--concierge .guest-header__brand .guest-header__descriptor,
+  .guest-header--concierge .guest-header__brand .guest-header__divider {
+    display: none;
+  }
 }
 
 @media (max-height: 720px) {

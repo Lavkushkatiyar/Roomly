@@ -175,9 +175,19 @@ export function getNaturalMessage(language, messageType) {
   return messages[index];
 }
 
-export async function playNaturalMessage(language, messageType, { signal } = {}) {
+export async function synthesizeNaturalMessage(
+  language,
+  messageType,
+  { signal } = {},
+) {
   const text = getNaturalMessage(language, messageType);
-  const audioBlob = await synthesizeSpeech({ text, language, signal });
+  return synthesizeSpeech({ text, language, signal });
+}
+
+export async function playNaturalMessage(language, messageType, { signal } = {}) {
+  const audioBlob = await synthesizeNaturalMessage(language, messageType, {
+    signal,
+  });
   if (signal?.aborted) {
     return;
   }

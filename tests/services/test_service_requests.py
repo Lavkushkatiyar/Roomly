@@ -135,6 +135,35 @@ def test_get_service_requests_filters_by_status(db, raw_input_id):
     assert [request.id for request in result] == [open_request.id]
 
 
+def test_get_service_requests_filters_by_room_id(db, raw_input_id):
+    current_room_request = ServiceRequestServices.create_service_request(
+        db,
+        make_request_data(raw_input_id, summary="Current room request"),
+    )
+    another_room = HotelRoom(room_number="202")
+    db.add(another_room)
+    db.flush()
+    another_raw_input = RawInput(
+        room_id=another_room.id,
+        transcript="Please bring extra towels.",
+        guest_language=GuestLanguage.ENGLISH,
+    )
+    db.add(another_raw_input)
+    db.commit()
+    other_room_request = ServiceRequestServices.create_service_request(
+        db,
+        make_request_data(another_raw_input.id, summary="Another room request"),
+    )
+
+    result = ServiceRequestServices.get_service_requests(
+        db,
+        room_id=another_room.id,
+    )
+
+    assert [request.id for request in result] == [other_room_request.id]
+    assert current_room_request.id not in [request.id for request in result]
+
+
 def test_get_service_requests_applies_limit_and_offset(db, raw_input_id):
     requests = [
         ServiceRequestServices.create_service_request(
