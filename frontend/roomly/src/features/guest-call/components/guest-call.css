@@ -346,8 +346,25 @@
   fill: currentColor;
 }
 
+.voice-control__processing-icon {
+  width: 1.75rem;
+  height: 1.75rem;
+  animation: processing-spin 1.2s linear infinite;
+}
+
+.voice-control__processing-icon circle {
+  stroke: currentColor;
+  stroke-dasharray: 34 16;
+  stroke-linecap: round;
+  stroke-width: 1.8;
+}
+
 .voice-control--recording .voice-control__ring--outer {
   animation: recording-ring 1.8s ease-in-out infinite;
+}
+
+.voice-control--processing .voice-control__ring--outer {
+  animation: processing-ring 1.8s ease-in-out infinite;
 }
 
 .audio-waveform {
@@ -391,6 +408,19 @@
   animation-delay: -180ms;
 }
 
+.audio-waveform--processing .audio-waveform__bar {
+  animation-name: processing-waveform;
+  animation-duration: 950ms;
+}
+
+.audio-waveform--processing .audio-waveform__bar:nth-child(3n) {
+  animation-delay: -630ms;
+}
+
+.audio-waveform--processing .audio-waveform__bar:nth-child(3n + 1) {
+  animation-delay: -315ms;
+}
+
 .call-status {
   min-height: 3.25rem;
   margin-top: 1.25rem;
@@ -424,6 +454,10 @@
   height: 0.42rem;
   border-radius: 50%;
   background: var(--color-olive);
+}
+
+.call-status__indicator--processing {
+  animation: processing-indicator 1s ease-in-out infinite;
 }
 
 .call-status__error {
@@ -752,6 +786,46 @@
   }
   50% {
     transform: scale(1.025);
+  }
+}
+
+@keyframes processing-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes processing-ring {
+  0%,
+  100% {
+    opacity: 0.72;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.015);
+  }
+}
+
+@keyframes processing-waveform {
+  0%,
+  100% {
+    transform: scaleY(0.35);
+  }
+  50% {
+    transform: scaleY(0.8);
+  }
+}
+
+@keyframes processing-indicator {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(0.85);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.15);
   }
 }
 

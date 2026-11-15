@@ -5,6 +5,13 @@ export function VoiceControl({
   retryUpload = false,
 }) {
   const isRecording = status === "recording";
+  const isProcessing = [
+    "processing",
+    "uploading",
+    "acknowledging",
+    "confirming",
+    "saving",
+  ].includes(status);
   const isBusy =
     status === "greeting" ||
     status === "acknowledging" ||
@@ -22,6 +29,10 @@ export function VoiceControl({
         ? "Speak yes or no to confirm"
     : status === "complete"
       ? "Record another message"
+    : isProcessing
+      ? status === "processing"
+        ? "Finishing your recording"
+        : "Processing your request"
       : status === "error"
         ? retryUpload
           ? "Retry voice request"
@@ -30,7 +41,7 @@ export function VoiceControl({
 
   return (
     <div
-      className={`voice-control${isRecording ? " voice-control--recording" : ""}`}
+      className={`voice-control${isRecording ? " voice-control--recording" : ""}${isProcessing ? " voice-control--processing" : ""}`}
     >
       <span className="voice-control__ring voice-control__ring--outer" />
       <span className="voice-control__ring voice-control__ring--inner" />
@@ -42,7 +53,16 @@ export function VoiceControl({
         aria-label={label}
         aria-pressed={isRecording}
       >
-        {isRecording ? (
+        {isProcessing ? (
+          <svg
+            aria-hidden="true"
+            className="voice-control__processing-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+          >
+            <circle cx="12" cy="12" r="8" />
+          </svg>
+        ) : isRecording ? (
           <svg
             aria-hidden="true"
             className="voice-control__stop-icon"

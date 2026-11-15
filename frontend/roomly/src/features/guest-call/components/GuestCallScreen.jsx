@@ -315,6 +315,13 @@ export function GuestCallScreen({ roomId, guestLanguage }) {
       : ingestionStatus !== "idle"
         ? ingestionStatus
         : recorderStatus;
+  const isProcessing = [
+    "processing",
+    "uploading",
+    "acknowledging",
+    "confirming",
+    "saving",
+  ].includes(status);
   const errorMessage = ingestionError ?? greetingError ?? recordingError;
 
   return (
@@ -338,7 +345,10 @@ export function GuestCallScreen({ roomId, guestLanguage }) {
             ].includes(ingestionStatus) || isGreeting}
             retryUpload={ingestionStatus === "error" && Boolean(audioBlob)}
           />
-          <AudioWaveform active={status === "recording"} />
+          <AudioWaveform
+            active={status === "recording" || isProcessing}
+            processing={isProcessing}
+          />
           <CallStatus
             status={status}
             errorMessage={errorMessage}

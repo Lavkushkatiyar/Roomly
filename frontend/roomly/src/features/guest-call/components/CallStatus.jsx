@@ -1,3 +1,5 @@
+import { MAX_RECORDING_DURATION_SECONDS } from "../hooks/useAudioRecorder";
+
 const STATUS_LABELS = {
   idle: "Tap to start your call",
   greeting: "Welcome to ROOMLY",
@@ -5,13 +7,13 @@ const STATUS_LABELS = {
   recording: "Listening · Tap stop to send your request",
   processing: "Finishing your recording",
   recorded: "Recording complete",
-  uploading: "Sending your recording",
-  acknowledging: "Just a moment, please",
+  uploading: "Working on your request…",
+  acknowledging: "Working on your request…",
   speaking: "Roomly is speaking",
   awaiting_clarification: "Tap the microphone to clarify your request",
   awaiting_confirmation: "Tap the microphone and say yes or no",
-  confirming: "Checking your confirmation",
-  saving: "Sending confirmed requests",
+  confirming: "Confirming your request…",
+  saving: "Sending your request…",
   complete: "Transcript and tasks ready",
   conversation_ended: "Conversation ended · Tap to start again",
   declined: "Requests cancelled",
@@ -19,18 +21,30 @@ const STATUS_LABELS = {
 };
 
 export function CallStatus({ status, errorMessage, retrying = false }) {
+  const isProcessing = [
+    "processing",
+    "uploading",
+    "acknowledging",
+    "confirming",
+    "saving",
+  ].includes(status);
+
   return (
     <div className="call-status">
       <p className="call-status__label" aria-live="polite">
-        {status === "recording" && (
-          <span className="call-status__indicator" aria-hidden="true" />
+        {(status === "recording" || isProcessing) && (
+          <span
+            className={`call-status__indicator${isProcessing ? " call-status__indicator--processing" : ""}`}
+            aria-hidden="true"
+          />
         )}
         {STATUS_LABELS[status]}
       </p>
       {status === "recording" && (
         <p className="call-status__hint">
           When you’re finished speaking, tap the square button. We’ll send your
-          request automatically.
+          request automatically. Recording ends and sends automatically after{" "}
+          {MAX_RECORDING_DURATION_SECONDS} seconds.
         </p>
       )}
       {errorMessage && (
