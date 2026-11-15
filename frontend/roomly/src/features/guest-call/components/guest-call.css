@@ -609,6 +609,63 @@
   line-height: 1.6;
 }
 
+.guest-call__service-listing {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.guest-call__service-card {
+  min-width: 0;
+  padding: 0.9rem 1rem;
+  border: 1px solid rgb(255 255 255 / 70%);
+  border-radius: 0.75rem;
+  background: var(--color-background);
+  box-shadow:
+    inset 2px 2px 5px rgb(180 172 160 / 28%),
+    inset -2px -2px 5px rgb(255 255 255 / 90%);
+}
+
+.guest-call__service-name {
+  margin: 0 0 0.35rem;
+  color: var(--color-primary);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.guest-call__service-list {
+  display: -webkit-box;
+  overflow: hidden;
+  margin: 0;
+  color: var(--color-secondary);
+  font-size: 0.82rem;
+  line-height: 1.55;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.guest-call__service-list--expanded {
+  display: block;
+  overflow: visible;
+}
+
+.guest-call__service-toggle {
+  margin-top: 0.35rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-olive);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.guest-call__service-toggle:focus-visible {
+  border-radius: 2px;
+  outline: 2px solid var(--color-olive);
+  outline-offset: 3px;
+}
+
 .guest-call__request-list {
   display: grid;
   gap: 0.8rem;

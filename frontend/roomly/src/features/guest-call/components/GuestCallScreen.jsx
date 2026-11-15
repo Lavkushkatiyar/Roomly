@@ -14,6 +14,23 @@ import { synthesizeNaturalMessage } from "../utils/naturalSpeech";
 import "./guest-call.css";
 
 const MINIMUM_GREETING_RING_MS = 600;
+const SERVICE_CATEGORIES = [
+  {
+    name: "Housekeeping",
+    services:
+      "Room cleaning, fresh towels, pillow menu, toiletries, laundry, extra bedding, turndown service",
+  },
+  {
+    name: "Dining & Beverages",
+    services:
+      "Breakfast, lunch, dinner, snacks, beverages, bottled water, dietary meals, restaurant reservations",
+  },
+  {
+    name: "Room Assistance",
+    services:
+      "AC, plumbing, electrical, TV, Wi-Fi, door lock, safe and general maintenance",
+  },
+];
 
 function formatRequestLabel(value) {
   return value
@@ -33,6 +50,29 @@ function formatRequestTime(value) {
     dateStyle: "medium",
     timeStyle: "short",
   })}`;
+}
+
+function ServiceCategory({ name, services }) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <article className="guest-call__service-card">
+      <h3 className="guest-call__service-name">{name}</h3>
+      <p
+        className={`guest-call__service-list${expanded ? " guest-call__service-list--expanded" : ""}`}
+      >
+        {services}
+      </p>
+      <button
+        className="guest-call__service-toggle"
+        type="button"
+        aria-expanded={expanded}
+        onClick={() => setExpanded((current) => !current)}
+      >
+        {expanded ? "Show less" : "Show more"}
+      </button>
+    </article>
+  );
 }
 
 export function GuestCallScreen({ roomId, guestLanguage }) {
@@ -350,11 +390,14 @@ export function GuestCallScreen({ roomId, guestLanguage }) {
                 Your Services
               </h2>
             </div>
-            <div className="guest-call__activity-card">
-              <p>
-                The hotel service catalogue is not available yet. Please ask
-                the concierge about available services.
-              </p>
+            <div className="guest-call__service-listing">
+              {SERVICE_CATEGORIES.map((category) => (
+                <ServiceCategory
+                  key={category.name}
+                  name={category.name}
+                  services={category.services}
+                />
+              ))}
             </div>
           </section>
 
