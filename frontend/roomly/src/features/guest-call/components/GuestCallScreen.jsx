@@ -188,7 +188,11 @@ export function GuestCallScreen({ roomId, guestLanguage, greetOnEntry = false })
     <main className="guest-call" aria-labelledby="guest-call-title">
       <div className="guest-call__content">
         <GreetingSection />
-        <section className="guest-call__interaction" aria-label="Voice call">
+        <section
+          className="guest-call__interaction"
+          id="voice-dial"
+          aria-label="Voice call"
+        >
           <VoiceControl
             status={status}
             onToggle={toggleRecording}
@@ -263,6 +267,7 @@ export function GuestCallScreen({ roomId, guestLanguage, greetOnEntry = false })
 
           <section
             className="guest-call__activity-section"
+            id="guest-requests"
             aria-labelledby="guest-requests-title"
           >
             <div className="guest-call__activity-heading">
