@@ -1,13 +1,28 @@
 export function GuestHeader({ roomNumber, onLogOut }) {
   return (
-    <header className="guest-header">
+    <header
+      className={`guest-header${roomNumber ? " guest-header--concierge" : ""}`}
+    >
       <a
         className="guest-header__brand"
-        href="/"
+        href={roomNumber ? "#guest-call-title" : "/"}
         aria-label="Roomly Guest Concierge home"
       >
         <img className="guest-header__logo" src="/roomly-logo.png" alt="" />
+        {roomNumber && (
+          <>
+            <span className="guest-header__divider" aria-hidden="true" />
+            <span className="guest-header__descriptor">Guest Concierge</span>
+          </>
+        )}
       </a>
+
+      {roomNumber && (
+        <nav className="guest-header__nav" aria-label="Guest concierge">
+          <a href="#guest-requests">My Requests</a>
+          <a href="#voice-dial">Voice Dial</a>
+        </nav>
+      )}
 
       <div className="guest-header__account">
         {roomNumber ? (
@@ -18,23 +33,46 @@ export function GuestHeader({ roomNumber, onLogOut }) {
         ) : (
           <span className="guest-header__descriptor">Guest access</span>
         )}
-        <span className="guest-header__profile" aria-hidden="true">
-          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none">
-            <circle
-              cx="12"
-              cy="8"
-              r="3.25"
-              stroke="currentColor"
-              strokeWidth="1.4"
-            />
-            <path
-              d="M5.5 20a6.5 6.5 0 0 1 13 0"
-              stroke="currentColor"
-              strokeWidth="1.4"
-              strokeLinecap="round"
-            />
-          </svg>
-        </span>
+        {roomNumber ? (
+          <span className="guest-header__profile-label">
+            <span className="guest-header__profile" aria-hidden="true">
+              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none">
+                <circle
+                  cx="12"
+                  cy="8"
+                  r="3.25"
+                  stroke="currentColor"
+                  strokeWidth="1.4"
+                />
+                <path
+                  d="M5.5 20a6.5 6.5 0 0 1 13 0"
+                  stroke="currentColor"
+                  strokeWidth="1.4"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </span>
+            <span>Profile</span>
+          </span>
+        ) : (
+          <span className="guest-header__profile" aria-hidden="true">
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none">
+              <circle
+                cx="12"
+                cy="8"
+                r="3.25"
+                stroke="currentColor"
+                strokeWidth="1.4"
+              />
+              <path
+                d="M5.5 20a6.5 6.5 0 0 1 13 0"
+                stroke="currentColor"
+                strokeWidth="1.4"
+                strokeLinecap="round"
+              />
+            </svg>
+          </span>
+        )}
         {roomNumber && (
           <button
             className="guest-header__logout"
