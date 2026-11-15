@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { AudioWaveform } from "./AudioWaveform";
 import { CallStatus } from "./CallStatus";
+import { GuestOnboardingModal } from "./GuestOnboardingModal";
 import { GreetingSection } from "./GreetingSection";
 import { IngestionResults } from "./IngestionResults";
 import { VoiceControl } from "./VoiceControl";
@@ -10,6 +11,10 @@ import { useConversationTurn } from "../hooks/useConversationTurn";
 import { useServiceRequests } from "../hooks/useServiceRequests";
 import { playAudioBlob } from "../utils/audioPlayback";
 import { playGreetingChime } from "../utils/greetingChime";
+import {
+  hasGuestSkippedOnboarding,
+  saveGuestOnboardingPreference,
+} from "../utils/guestOnboarding";
 import { synthesizeNaturalMessage } from "../utils/naturalSpeech";
 import "./guest-call.css";
 
@@ -75,7 +80,16 @@ function ServiceCategory({ name, services }) {
   );
 }
 
-export function GuestCallScreen({ roomId, guestLanguage }) {
+export function GuestCallScreen({
+  roomId,
+  guestLanguage,
+  isGuideOpen = false,
+  onGuideClose,
+}) {
+  const [showOnboarding, setShowOnboarding] = useState(
+    () => !hasGuestSkippedOnboarding(roomId),
+  );
+  const [onboardingError, setOnboardingError] = useState(null);
   const [isGreeting, setIsGreeting] = useState(false);
   const [greetingError, setGreetingError] = useState(null);
   const greetingControllerRef = useRef(null);
@@ -241,6 +255,48 @@ export function GuestCallScreen({ roomId, guestLanguage }) {
     await startRecording();
   }, [guestLanguage, startRecording]);
 
+  const rememberOnboardingChoice = useCallback(
+    (doNotShowAgain) => {
+      if (!doNotShowAgain) {
+        setOnboardingError(null);
+        return true;
+      }
+
+      try {
+        saveGuestOnboardingPreference(roomId);
+        setOnboardingError(null);
+        return true;
+      } catch (error) {
+        setOnboardingError(
+          error instanceof Error
+            ? `Could not save this preference: ${error.message}`
+            : "Could not save this preference. Please try again.",
+        );
+        return false;
+      }
+    },
+    [roomId],
+  );
+
+  const handleOnboardingEnter = useCallback(
+    (doNotShowAgain) => {
+      return rememberOnboardingChoice(doNotShowAgain);
+    },
+    [rememberOnboardingChoice],
+  );
+
+  const handleOnboardingSkip = useCallback(
+    (doNotShowAgain) => rememberOnboardingChoice(doNotShowAgain),
+    [rememberOnboardingChoice],
+  );
+  const handleOnboardingClosed = useCallback(
+    () => {
+      setShowOnboarding(false);
+      onGuideClose?.();
+    },
+    [onGuideClose],
+  );
+
   useEffect(() => {
     if (ingestionStatus === "conversation_ended") {
       conversationStartedRef.current = false;
@@ -315,6 +371,13 @@ export function GuestCallScreen({ roomId, guestLanguage }) {
       : ingestionStatus !== "idle"
         ? ingestionStatus
         : recorderStatus;
+  const isProcessing = [
+    "processing",
+    "uploading",
+    "acknowledging",
+    "confirming",
+    "saving",
+  ].includes(status);
   const errorMessage = ingestionError ?? greetingError ?? recordingError;
 
   return (
@@ -338,7 +401,10 @@ export function GuestCallScreen({ roomId, guestLanguage }) {
             ].includes(ingestionStatus) || isGreeting}
             retryUpload={ingestionStatus === "error" && Boolean(audioBlob)}
           />
-          <AudioWaveform active={status === "recording"} />
+          <AudioWaveform
+            active={status === "recording" || isProcessing}
+            processing={isProcessing}
+          />
           <CallStatus
             status={status}
             errorMessage={errorMessage}
@@ -480,6 +546,14 @@ export function GuestCallScreen({ roomId, guestLanguage }) {
           </section>
         </div>
       </div>
+      {(showOnboarding || isGuideOpen) && (
+        <GuestOnboardingModal
+          errorMessage={onboardingError}
+          onEnter={handleOnboardingEnter}
+          onClosed={handleOnboardingClosed}
+          onSkip={handleOnboardingSkip}
+        />
+      )}
     </main>
   );
 }

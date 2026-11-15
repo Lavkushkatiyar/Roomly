@@ -12,6 +12,8 @@ const INITIAL_STATE = {
   audioBlob: null,
 };
 
+export const MAX_RECORDING_DURATION_SECONDS = 30;
+
 function getUnsupportedErrorMessage() {
   if (!navigator.mediaDevices?.getUserMedia) {
     return "Microphone recording is not supported by this browser. Try a current browser over a secure connection.";
@@ -32,6 +34,7 @@ export function useAudioRecorder() {
   const streamRef = useRef(null);
   const chunksRef = useRef([]);
   const recorderFailedRef = useRef(false);
+  const recordingTimeoutRef = useRef(null);
 
   const updateState = useCallback((nextState) => {
     if (mountedRef.current) {
@@ -43,6 +46,8 @@ export function useAudioRecorder() {
     (message) => {
       recorderFailedRef.current = true;
       recorderRef.current = null;
+      window.clearTimeout(recordingTimeoutRef.current);
+      recordingTimeoutRef.current = null;
       stopMediaStream(streamRef.current);
       streamRef.current = null;
       chunksRef.current = [];
@@ -62,6 +67,8 @@ export function useAudioRecorder() {
       mountedRef.current = false;
       const recorder = recorderRef.current;
       recorderRef.current = null;
+      window.clearTimeout(recordingTimeoutRef.current);
+      recordingTimeoutRef.current = null;
 
       if (recorder) {
         recorder.ondataavailable = null;
@@ -78,6 +85,32 @@ export function useAudioRecorder() {
       chunksRef.current = [];
     };
   }, []);
+
+  const stopRecording = useCallback(() => {
+    const recorder = recorderRef.current;
+
+    if (!recorder || recorder.state !== "recording") {
+      return;
+    }
+
+    window.clearTimeout(recordingTimeoutRef.current);
+    recordingTimeoutRef.current = null;
+    updateState({
+      status: "processing",
+      errorMessage: null,
+      audioBlob: null,
+    });
+
+    try {
+      recorder.stop();
+    } catch (error) {
+      const message =
+        error instanceof DOMException && error.name === "InvalidStateError"
+          ? "The recording has already stopped. Please try again."
+          : "Recording could not be completed. Please try again.";
+      failRecording(message);
+    }
+  }, [failRecording, updateState]);
 
   const startRecording = useCallback(async () => {
     if (startingRef.current || recorderRef.current?.state === "recording") {
@@ -159,6 +192,10 @@ export function useAudioRecorder() {
         errorMessage: null,
         audioBlob: null,
       });
+      recordingTimeoutRef.current = window.setTimeout(
+        stopRecording,
+        MAX_RECORDING_DURATION_SECONDS * 1000,
+      );
     } catch (error) {
       if (stream) {
         stopMediaStream(stream);
@@ -168,31 +205,7 @@ export function useAudioRecorder() {
     } finally {
       startingRef.current = false;
     }
-  }, [failRecording, updateState]);
-
-  const stopRecording = useCallback(() => {
-    const recorder = recorderRef.current;
-
-    if (!recorder || recorder.state !== "recording") {
-      return;
-    }
-
-    updateState({
-      status: "processing",
-      errorMessage: null,
-      audioBlob: null,
-    });
-
-    try {
-      recorder.stop();
-    } catch (error) {
-      const message =
-        error instanceof DOMException && error.name === "InvalidStateError"
-          ? "The recording has already stopped. Please try again."
-          : "Recording could not be completed. Please try again.";
-      failRecording(message);
-    }
-  }, [failRecording, updateState]);
+  }, [failRecording, stopRecording, updateState]);
 
   return {
     ...state,

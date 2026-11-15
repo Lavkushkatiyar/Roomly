@@ -370,6 +370,8 @@
   }
 
   .room-entry__card {
+    width: 100%;
+    margin-left: 0;
     padding: 1.25rem;
     border-radius: 1.25rem;
   }
