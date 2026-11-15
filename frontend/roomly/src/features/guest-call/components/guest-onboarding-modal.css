@@ -11,6 +11,14 @@
   animation: guest-onboarding-fade-in 220ms ease-out both;
 }
 
+.guest-onboarding__overlay--closing {
+  animation: guest-onboarding-fade-out 220ms ease-in both;
+}
+
+.guest-onboarding__overlay--closing .guest-onboarding__dialog {
+  animation: guest-onboarding-rise-out 220ms ease-in both;
+}
+
 .guest-onboarding__dialog {
   width: min(100%, 44rem);
   max-height: min(100%, 54rem);
@@ -382,6 +390,13 @@
   text-align: right;
 }
 
+.guest-onboarding__error {
+  margin: 0.75rem 0 0;
+  color: #8c4c43;
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+
 @keyframes guest-onboarding-fade-in {
   from {
     opacity: 0;
@@ -399,6 +414,19 @@
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes guest-onboarding-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes guest-onboarding-rise-out {
+  to {
+    opacity: 0;
+    transform: translateY(0.35rem) scale(0.99);
   }
 }
 

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import "./guest-onboarding-modal.css";
 
@@ -59,6 +59,9 @@ function useMicrophoneReadiness() {
           permissionStatus = await navigator.permissions.query({
             name: "microphone",
           });
+          if (!active) {
+            return;
+          }
           permissionState = permissionStatus.state;
           permissionStatus.onchange = updateReadiness;
         } catch {
@@ -141,12 +144,31 @@ function DemoVideo({ src }) {
 export function GuestOnboardingModal({
   onSkip,
   onBegin,
+  onClosed,
+  errorMessage,
   videoSrc = null,
 }) {
   const [doNotShowAgain, setDoNotShowAgain] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
   const closeButtonRef = useRef(null);
+  const dialogRef = useRef(null);
+  const closingRef = useRef(false);
+  const dismissTimerRef = useRef(null);
   const rememberedChoiceRef = useRef(doNotShowAgain);
   const readiness = useMicrophoneReadiness();
+
+  const dismiss = useCallback(
+    (action, rememberChoice) => {
+      if (closingRef.current || action(rememberChoice) === false) {
+        return;
+      }
+
+      closingRef.current = true;
+      setIsClosing(true);
+      dismissTimerRef.current = window.setTimeout(onClosed, 220);
+    },
+    [onClosed],
+  );
 
   useEffect(() => {
     const previousFocus = document.activeElement;
@@ -155,7 +177,7 @@ export function GuestOnboardingModal({
     const handleKeyDown = (event) => {
       if (event.key === "Escape") {
         event.preventDefault();
-        onSkip(rememberedChoiceRef.current);
+        dismiss(onSkip, rememberedChoiceRef.current);
         return;
       }
 
@@ -180,21 +202,25 @@ export function GuestOnboardingModal({
 
     document.body.style.overflow = "hidden";
     closeButtonRef.current?.focus();
-    const dialog = document.querySelector(".guest-onboarding__dialog");
+    const dialog = dialogRef.current;
     dialog?.addEventListener("keydown", handleKeyDown);
 
     return () => {
+      window.clearTimeout(dismissTimerRef.current);
       document.body.style.overflow = previousOverflow;
       dialog?.removeEventListener("keydown", handleKeyDown);
       if (previousFocus instanceof HTMLElement) {
         previousFocus.focus();
       }
     };
-  }, [onSkip]);
+  }, [dismiss, onSkip]);
 
   return (
-    <div className="guest-onboarding__overlay">
+    <div
+      className={`guest-onboarding__overlay${isClosing ? " guest-onboarding__overlay--closing" : ""}`}
+    >
       <section
+        ref={dialogRef}
         className="guest-onboarding__dialog"
         role="dialog"
         aria-modal="true"
@@ -210,7 +236,7 @@ export function GuestOnboardingModal({
             className="guest-onboarding__close"
             type="button"
             aria-label="Close orientation"
-            onClick={() => onSkip(doNotShowAgain)}
+            onClick={() => dismiss(onSkip, doNotShowAgain)}
           >
             <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path
@@ -291,14 +317,14 @@ export function GuestOnboardingModal({
             <button
               className="guest-onboarding__skip"
               type="button"
-              onClick={() => onSkip(doNotShowAgain)}
+              onClick={() => dismiss(onSkip, doNotShowAgain)}
             >
               Skip
             </button>
             <button
               className="guest-onboarding__begin"
               type="button"
-              onClick={() => onBegin(doNotShowAgain)}
+              onClick={() => dismiss(onBegin, doNotShowAgain)}
             >
               Begin Voice Dial
               <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
@@ -313,6 +339,11 @@ export function GuestOnboardingModal({
             </button>
           </div>
         </div>
+        {errorMessage && (
+          <p className="guest-onboarding__error" role="alert">
+            {errorMessage}
+          </p>
+        )}
         <p className="guest-onboarding__permission-note">
           Microphone access is only requested when you begin voice interaction.
         </p>
