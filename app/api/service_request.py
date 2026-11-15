@@ -35,6 +35,7 @@ def create_request(
     response_model=list[ServiceRequestResponse],
 )
 def list_requests(
+    room_id: uuid.UUID | None = Query(default=None),
     request_status: RequestStatus | None = Query(default=None, alias="status"),
     limit: int = Query(default=50, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
@@ -42,6 +43,7 @@ def list_requests(
 ):
     return ServiceRequestServices.get_service_requests(
         db,
+        room_id=room_id,
         status=request_status,
         limit=limit,
         offset=offset,

@@ -7,9 +7,30 @@ import { IngestionResults } from "./IngestionResults";
 import { VoiceControl } from "./VoiceControl";
 import { useAudioRecorder } from "../hooks/useAudioRecorder";
 import { useConversationTurn } from "../hooks/useConversationTurn";
+import { useServiceRequests } from "../hooks/useServiceRequests";
 import { playGreetingChime } from "../utils/greetingChime";
 import { playNaturalMessage } from "../utils/naturalSpeech";
 import "./guest-call.css";
+
+function formatRequestLabel(value) {
+  return value
+    .toLowerCase()
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
+function formatRequestTime(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "Submission time unavailable";
+  }
+
+  return `Submitted ${date.toLocaleString(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  })}`;
+}
 
 export function GuestCallScreen({ roomId, guestLanguage, greetOnEntry = false }) {
   const [isGreeting, setIsGreeting] = useState(false);
@@ -28,6 +49,12 @@ export function GuestCallScreen({ roomId, guestLanguage, greetOnEntry = false })
     [startRecording],
   );
   const {
+    requests,
+    status: requestsStatus,
+    errorMessage: requestsError,
+    reload: reloadRequests,
+  } = useServiceRequests(roomId);
+  const {
     status: ingestionStatus,
     errorMessage: ingestionError,
     result,
@@ -38,6 +65,7 @@ export function GuestCallScreen({ roomId, guestLanguage, greetOnEntry = false })
     roomId,
     guestLanguage,
     onResponseFinished: startListeningAfterReply,
+    onConfirmed: reloadRequests,
   });
   const submittedBlobRef = useRef(null);
 
@@ -289,12 +317,58 @@ export function GuestCallScreen({ roomId, guestLanguage, greetOnEntry = false })
                 Your Requests
               </h2>
             </div>
-            <div className="guest-call__activity-card">
-              <p>
-                Request history for this room is not available yet. Your
-                submitted requests will appear here when it is supported.
-              </p>
-            </div>
+            {requestsStatus === "loading" && (
+              <div className="guest-call__activity-card" role="status">
+                <p>Loading your requests…</p>
+              </div>
+            )}
+            {requestsStatus === "error" && (
+              <div className="guest-call__activity-card">
+                <p role="alert">{requestsError}</p>
+                <button
+                  className="guest-call__requests-retry"
+                  type="button"
+                  onClick={() => void reloadRequests()}
+                >
+                  Try again
+                </button>
+              </div>
+            )}
+            {requestsStatus === "loaded" && requests.length === 0 && (
+              <div className="guest-call__activity-card">
+                <p>No confirmed requests for this room yet.</p>
+              </div>
+            )}
+            {requestsStatus === "loaded" && requests.length > 0 && (
+              <div className="guest-call__request-list">
+                {requests.map((request) => (
+                  <article
+                    className="guest-call__activity-card guest-call__request-card"
+                    key={request.id}
+                  >
+                    <div className="guest-call__request-meta">
+                      <span className="guest-call__request-category">
+                        {formatRequestLabel(request.category)}
+                      </span>
+                      <span
+                        className={`guest-call__request-status guest-call__request-status--${request.status.toLowerCase()}`}
+                      >
+                        {formatRequestLabel(request.status)}
+                      </span>
+                    </div>
+                    <p className="guest-call__request-summary">
+                      {request.staff_summary}
+                    </p>
+                    <time
+                      className="guest-call__request-time"
+                      dateTime={request.created_at}
+                    >
+                      {formatRequestTime(request.created_at)}
+                    </time>
+                  </article>
+                ))}
+              </div>
+            )}
           </section>
         </div>
       </div>

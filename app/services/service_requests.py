@@ -5,6 +5,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.db.models.enums import RequestStatus
+from app.db.models.raw_input import RawInput
 from app.db.models.service_requests import ServiceRequest
 from app.schemas.service_request import ServiceRequestCreate
 from app.schemas.task_extraction import ProposedServiceRequest
@@ -39,11 +40,18 @@ class ServiceRequestServices:
     def get_service_requests(
         db: Session,
         *,
+        room_id: uuid.UUID | None = None,
         status: RequestStatus | None = None,
         limit: int = 50,
         offset: int = 0,
     ) -> list[ServiceRequest]:
         statement = select(ServiceRequest)
+
+        if room_id is not None:
+            statement = statement.join(
+                RawInput,
+                ServiceRequest.raw_input_id == RawInput.id,
+            ).where(RawInput.room_id == room_id)
 
         if status is not None:
             statement = statement.where(ServiceRequest.status == status)
