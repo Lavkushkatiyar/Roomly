@@ -1,5 +1,13 @@
 export function GreetingSection() {
-  const greeting = "Good evening";
+  const currentHour = new Date().getHours();
+
+  const greeting =
+    currentHour < 12
+      ? "Good morning"
+      : currentHour < 17
+        ? "Good afternoon"
+        : "Good evening";
+
 
   return (
     <header className="greeting">
